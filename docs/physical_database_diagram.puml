@@ -1,0 +1,147 @@
+@startuml
+!define table(x) class x << (T,#FFAAAA) >>
+!define primary_key(x) <b><u>x</u></b>
+!define foreign_key(x) <i>x</i>
+
+' Стилі для таблиць
+skinparam class {
+    BackgroundColor White
+    ArrowColor Black
+    BorderColor Black
+}
+
+' Таблиці
+table(migration_data) {
+    primary_key(id): UUID
+    foreign_key(source_region_id): UUID
+    foreign_key(target_region_id): UUID
+    foreign_key(metrics_id): UUID
+    foreign_key(demographics_id): UUID
+    foreign_key(economic_factors_id): UUID
+    foreign_key(environmental_factors_id): UUID
+    timestamp: TIMESTAMP
+    volume: INTEGER
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(regions) {
+    primary_key(id): UUID
+    name: VARCHAR(100)
+    coordinates: POINT
+    population: INTEGER
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(metrics) {
+    primary_key(id): UUID
+    foreign_key(region_id): UUID
+    timestamp: TIMESTAMP
+    migration_volume: INTEGER
+    economic_impact: DECIMAL(10,2)
+    environmental_impact: DECIMAL(10,2)
+    social_impact: DECIMAL(10,2)
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(demographics) {
+    primary_key(id): UUID
+    age_distribution: JSONB
+    gender_ratio: DECIMAL(5,2)
+    education_level: VARCHAR(50)
+    employment_rate: DECIMAL(5,2)
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(economic_factors) {
+    primary_key(id): UUID
+    gdp: DECIMAL(15,2)
+    unemployment_rate: DECIMAL(5,2)
+    average_salary: DECIMAL(10,2)
+    inflation_rate: DECIMAL(5,2)
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+table(environmental_factors) {
+    primary_key(id): UUID
+    air_quality_index: INTEGER
+    water_quality_index: INTEGER
+    pollution_level: DECIMAL(5,2)
+    climate_conditions: VARCHAR(50)
+    created_at: TIMESTAMP
+    updated_at: TIMESTAMP
+}
+
+' Індекси
+note bottom of migration_data
+  Індекси:
+  idx_source_region (source_region_id)
+  idx_target_region (target_region_id)
+  idx_timestamp (timestamp)
+end note
+
+note bottom of regions
+  Індекси:
+  idx_name (name)
+end note
+
+note bottom of metrics
+  Індекси:
+  idx_region_id (region_id)
+  idx_timestamp (timestamp)
+end note
+
+' Зв'язки між таблицями
+migration_data "1" -- "1" regions : "source_region_id"
+migration_data "1" -- "1" regions : "target_region_id"
+migration_data "1" -- "1" metrics : "metrics_id"
+migration_data "1" -- "1" demographics : "demographics_id"
+migration_data "1" -- "1" economic_factors : "economic_factors_id"
+migration_data "1" -- "1" environmental_factors : "environmental_factors_id"
+regions "1" -- "*" metrics : "region_id"
+
+' Типи зв'язків
+note right of migration_data
+  Зв'язки:
+  - One-to-One з regions (source)
+  - One-to-One з regions (target)
+  - One-to-One з metrics
+  - One-to-One з demographics
+  - One-to-One з economic_factors
+  - One-to-One з environmental_factors
+end note
+
+note right of regions
+  Зв'язки:
+  - One-to-Many з metrics
+end note
+
+note right of metrics
+  Зв'язки:
+  - Many-to-One з regions
+end note
+
+' Обмеження
+note bottom of migration_data
+  Обмеження:
+  - NOT NULL для всіх полів
+  - FOREIGN KEY для всіх зовнішніх ключів
+  - UNIQUE для індексів
+end note
+
+note bottom of regions
+  Обмеження:
+  - NOT NULL для всіх полів
+  - UNIQUE для name
+end note
+
+note bottom of metrics
+  Обмеження:
+  - NOT NULL для всіх полів
+  - CHECK для impact полів (>= 0)
+end note
+@enduml 

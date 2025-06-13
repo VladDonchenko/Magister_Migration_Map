@@ -1,0 +1,117 @@
+@startuml Use-Case Diagram
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+actor "Користувач" as User
+actor "Адміністратор" as Admin
+actor "Система Flink" as Flink
+
+rectangle "Система Візуалізації Міграцій" {
+  usecase "Перегляд міграційних потоків" as UC1
+  usecase "Фільтрація даних" as UC2
+  usecase "Експорт даних" as UC3
+  usecase "Управління даними" as UC4
+  usecase "Обробка потокових даних" as UC5
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+Admin --> UC4
+Flink --> UC5
+@enduml
+
+@startuml Package Diagram
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+
+package "Frontend" {
+  [Web Interface]
+  [Data Visualization]
+  [User Management]
+}
+
+package "Backend" {
+  [API Layer]
+  [Business Logic]
+  [Data Processing]
+}
+
+package "Flink" {
+  [Stream Processing]
+  [Kafka Connector]
+}
+
+package "Database" {
+  [Neo4j]
+}
+
+[Web Interface] --> [API Layer]
+[API Layer] --> [Business Logic]
+[Business Logic] --> [Data Processing]
+[Data Processing] --> [Neo4j]
+[Stream Processing] --> [Kafka Connector]
+[Kafka Connector] --> [Data Processing]
+@enduml
+
+@startuml Component Diagram
+skinparam componentStyle rectangle
+
+component "Frontend" as FE {
+  [Web Interface]
+  [Data Visualization]
+}
+
+component "Backend API" as BE {
+  [REST API]
+  [GraphQL API]
+}
+
+component "Stream Processing" as SP {
+  [Flink Job]
+  [Kafka Consumer]
+}
+
+component "Database" as DB {
+  [Neo4j]
+}
+
+[Web Interface] --> [REST API]
+[Web Interface] --> [GraphQL API]
+[REST API] --> [Flink Job]
+[GraphQL API] --> [Neo4j]
+[Flink Job] --> [Kafka Consumer]
+[Kafka Consumer] --> [Neo4j]
+@enduml
+
+@startuml Sequence Diagram
+actor User
+participant "Frontend" as FE
+participant "Backend API" as BE
+participant "Flink" as FL
+participant "Neo4j" as DB
+
+User -> FE: Запит на дані міграції
+FE -> BE: HTTP/GraphQL запит
+BE -> FL: Запит на обробку даних
+FL -> DB: Читання даних
+DB --> FL: Відповідь з даними
+FL --> BE: Оброблені дані
+BE --> FE: Відповідь API
+FE --> User: Відображення даних
+@enduml
+
+@startuml Process Diagram
+start
+:Отримання потокових даних;
+fork
+  :Обробка даних Flink;
+fork again
+  :Збереження в Neo4j;
+fork again
+  :Візуалізація даних;
+end fork
+:Оновлення інтерфейсу;
+stop
+@enduml 

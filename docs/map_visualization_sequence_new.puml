@@ -1,0 +1,92 @@
+@startuml
+skinparam sequence {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+actor User
+participant "MapVisualization" as map
+participant "DataManager" as dataManager
+participant "MapboxGL" as mapbox
+participant "Cache" as cache
+participant "Neo4j" as neo4j
+participant "MigrationLayer" as migrationLayer
+participant "CityLayer" as cityLayer
+participant "Controls" as controls
+
+User -> map: Ініціалізація карти
+activate map
+
+map -> mapbox: Створення екземпляру карти
+mapbox --> map: Екземпляр карти
+map -> map: Налаштування базових параметрів
+
+map -> dataManager: Запит даних
+activate dataManager
+
+dataManager -> cache: Перевірка кешу
+alt Дані в кеші
+    cache --> dataManager: Повернення кешованих даних
+else Дані відсутні в кеші
+    dataManager -> neo4j: Запит міграційних даних
+    neo4j --> dataManager: Дані міграцій
+    dataManager -> neo4j: Запит даних міст
+    neo4j --> dataManager: Дані міст
+    dataManager -> cache: Збереження в кеш
+end
+
+dataManager --> map: Повернення даних
+deactivate dataManager
+
+map -> migrationLayer: Створення шару міграцій
+activate migrationLayer
+migrationLayer -> mapbox: Додавання джерела даних
+migrationLayer -> mapbox: Налаштування стилів
+migrationLayer -> mapbox: Додавання шару
+migrationLayer --> map: Підтвердження
+deactivate migrationLayer
+
+map -> cityLayer: Створення шару міст
+activate cityLayer
+cityLayer -> mapbox: Додавання джерела даних
+cityLayer -> mapbox: Налаштування стилів
+cityLayer -> mapbox: Додавання шару
+cityLayer --> map: Підтвердження
+deactivate cityLayer
+
+map -> controls: Ініціалізація контролів
+activate controls
+controls -> mapbox: Додавання контролів навігації
+controls -> mapbox: Додавання контролів фільтрації
+controls -> mapbox: Додавання контролів легенди
+controls --> map: Підтвердження
+deactivate controls
+
+map --> User: Карта готова до використання
+deactivate map
+
+User -> map: Взаємодія з картою
+activate map
+
+alt Фільтрація даних
+    map -> dataManager: Запит відфільтрованих даних
+    activate dataManager
+    dataManager -> neo4j: Запит з фільтрами
+    neo4j --> dataManager: Відфільтровані дані
+    dataManager --> map: Повернення даних
+    deactivate dataManager
+    map -> migrationLayer: Оновлення даних
+    map -> cityLayer: Оновлення даних
+else Масштабування/Панорамування
+    map -> mapbox: Оновлення виду карти
+    mapbox --> map: Підтвердження
+else Клік на елементі
+    map -> mapbox: Отримання даних елемента
+    mapbox --> map: Дані елемента
+    map -> controls: Відображення інформації
+end
+
+map --> User: Оновлений стан карти
+deactivate map
+@enduml 

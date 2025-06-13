@@ -1,0 +1,189 @@
+@startuml
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+' Вузли
+class Person {
+  +id: String(36) (PK, indexed)
+  +first_name: String(50) (indexed)
+  +last_name: String(50) (indexed)
+  +gender: String(10)
+  +age: Integer
+  +birth_date: Date
+  +nationality: String(50)
+  +education_level: String(50)
+  +occupation: String(100)
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+
+  +getFullName(): String
+  +calculateAge(): Integer
+  +getMigrationHistory(): Migration[]
+  +getFamilyInfo(): Family
+  +getEducationHistory(): Education[]
+  +getEmploymentHistory(): Employment[]
+}
+
+class City {
+  +id: String(36) (PK, indexed)
+  +name: String(100) (indexed)
+  +region: String(100) (indexed)
+  +country: String(100) (indexed)
+  +population: Integer
+  +latitude: Float(10,6) (indexed)
+  +longitude: Float(10,6) (indexed)
+  +time_zone: String(50)
+  +climate_type: String(50)
+  +economy_type: String(50)
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+
+  +getFullLocation(): String
+  +calculateDistance(City): Float
+  +getIncomingMigrations(): Migration[]
+  +getOutgoingMigrations(): Migration[]
+  +getPopulationDensity(): Float
+}
+
+class Migration {
+  +id: String(36) (PK, indexed)
+  +migration_date: DateTime (indexed)
+  +reason: String(200)
+  +duration_days: Integer
+  +status: String(50)
+  +documentation_url: String(500)
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+
+  +calculateDuration(): Integer
+  +getMigrationPath(): City[]
+  +getMigrationType(): String
+  +isActive(): Boolean
+  +getDocumentation(): String
+}
+
+class Family {
+  +id: String(36) (PK, indexed)
+  +family_type: String(50)
+  +size: Integer
+  +monthly_income: Decimal(15,2)
+  +housing_type: String(50)
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+
+  +getFamilyMembers(): Person[]
+  +calculateTotalIncome(): Decimal
+  +getHousingInfo(): String
+  +isComplete(): Boolean
+}
+
+class Education {
+  +id: String(36) (PK, indexed)
+  +education_level: String(50)
+  +institution_name: String(200)
+  +field_of_study: String(100)
+  +graduation_year: Integer
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+
+  +getEducationLevel(): String
+  +getInstitutionInfo(): String
+  +isCompleted(): Boolean
+  +getDuration(): Integer
+}
+
+class Employment {
+  +id: String(36) (PK, indexed)
+  +position: String(100)
+  +company_name: String(200)
+  +industry: String(100)
+  +monthly_salary: Decimal(15,2)
+  +start_date: Date
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+
+  +getEmploymentInfo(): String
+  +calculateAnnualSalary(): Decimal
+  +getDuration(): Integer
+  +isCurrent(): Boolean
+}
+
+' Зв'язки як окремі сутності
+class MIGRATES {
+  +migration_type: String(50)
+  +created_at: DateTime
+
+  +getMigrationType(): String
+  +getCreationDate(): DateTime
+}
+
+class FROM_CITY {
+  +distance: Float(10,2)
+  +created_at: DateTime
+
+  +getDistance(): Float
+  +getCreationDate(): DateTime
+}
+
+class TO_CITY {
+  +distance: Float(10,2)
+  +created_at: DateTime
+
+  +getDistance(): Float
+  +getCreationDate(): DateTime
+}
+
+class HAS_FAMILY {
+  +relation_type: String(50)
+  +created_at: DateTime
+
+  +getRelationType(): String
+  +getCreationDate(): DateTime
+}
+
+class HAS_EDUCATION {
+  +degree: String(100)
+  +created_at: DateTime
+
+  +getDegree(): String
+  +getCreationDate(): DateTime
+}
+
+class HAS_EMPLOYMENT {
+  +contract_type: String(50)
+  +created_at: DateTime
+
+  +getContractType(): String
+  +getCreationDate(): DateTime
+}
+
+' Стрілки з типами зв'язків
+Person "1" -- "*" MIGRATES
+MIGRATES -- "*" Migration
+
+City "1" -- "*" FROM_CITY
+FROM_CITY -- "*" Migration
+
+City "1" -- "*" TO_CITY
+TO_CITY -- "*" Migration
+
+Person "1" -- "1" HAS_FAMILY
+HAS_FAMILY -- "1" Family
+
+Person "1" -- "*" HAS_EDUCATION
+HAS_EDUCATION -- "*" Education
+
+Person "1" -- "*" HAS_EMPLOYMENT
+HAS_EMPLOYMENT -- "*" Employment
+
+@enduml 

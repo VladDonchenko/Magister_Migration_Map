@@ -1,0 +1,165 @@
+@startuml
+skinparam object {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+object "MapVisualization" as map {
+  mapInstance: MapboxGL.Map
+  dataSource: MapboxGL.GeoJSONSource
+  layers: MapboxGL.Layer[]
+  controls: MapboxGL.Control[]
+  filters: Filter[]
+
+  +initialize(): void
+  +addLayer(layer: MapboxGL.Layer): void
+  +removeLayer(layerId: String): void
+  +updateData(data: GeoJSON.FeatureCollection): void
+  +applyFilters(filters: Filter[]): void
+  +setView(center: [number, number], zoom: number): void
+  +addControl(control: MapboxGL.Control): void
+}
+
+object "MigrationLayer" as migrationLayer {
+  sourceId: "migration-data"
+  layerId: "migration-flow"
+  type: "line"
+  paint: PaintStyle
+
+  +updateStyle(style: PaintStyle): void
+  +setVisibility(visible: boolean): void
+  +updateData(data: GeoJSON.FeatureCollection): void
+  +getSourceId(): String
+  +getLayerId(): String
+}
+
+object "CityLayer" as cityLayer {
+  sourceId: "city-data"
+  layerId: "city-points"
+  type: "circle"
+  paint: PaintStyle
+
+  +updateStyle(style: PaintStyle): void
+  +setVisibility(visible: boolean): void
+  +updateData(data: GeoJSON.FeatureCollection): void
+  +getSourceId(): String
+  +getLayerId(): String
+}
+
+object "PaintStyle" as paintStyle {
+  lineWidth: 5
+  lineColor: "#ff0000"
+  lineOpacity: 0.8
+  circleRadius: 8
+  circleColor: "#0000ff"
+  circleOpacity: 0.8
+
+  +setLineStyle(width: number, color: String, opacity: number): void
+  +setCircleStyle(radius: number, color: String, opacity: number): void
+  +getLineStyle(): Object
+  +getCircleStyle(): Object
+}
+
+object "Filter" as filter {
+  field: String
+  operator: String
+  value: any
+
+  +apply(data: GeoJSON.FeatureCollection): GeoJSON.FeatureCollection
+  +getField(): String
+  +getOperator(): String
+  +getValue(): any
+  +setValue(value: any): void
+}
+
+object "DataManager" as dataManager {
+  migrationData: GeoJSON.FeatureCollection
+  cityData: GeoJSON.FeatureCollection
+  filters: Filter[]
+
+  +loadData(): Promise<void>
+  +applyFilters(): GeoJSON.FeatureCollection
+  +getFilteredData(): GeoJSON.FeatureCollection
+  +addFilter(filter: Filter): void
+  +removeFilter(filter: Filter): void
+  +updateData(data: GeoJSON.FeatureCollection): void
+}
+
+object "MapControls" as controls {
+  zoomControl: MapboxGL.NavigationControl
+  filterControl: CustomFilterControl
+  legendControl: CustomLegendControl
+
+  +initialize(): void
+  +addControl(control: MapboxGL.Control): void
+  +removeControl(control: MapboxGL.Control): void
+  +updateControls(): void
+}
+
+object "CustomFilterControl" as filterControl {
+  filters: Filter[]
+  onFilterChange: Function
+
+  +addFilter(filter: Filter): void
+  +removeFilter(filter: Filter): void
+  +applyFilters(): void
+  +getFilters(): Filter[]
+  +setOnFilterChange(callback: Function): void
+}
+
+object "CustomLegendControl" as legendControl {
+  legendItems: LegendItem[]
+  onLegendItemClick: Function
+
+  +addLegendItem(item: LegendItem): void
+  +removeLegendItem(item: LegendItem): void
+  +updateLegend(): void
+  +getLegendItems(): LegendItem[]
+  +setOnLegendItemClick(callback: Function): void
+}
+
+object "LegendItem" as legendItem {
+  label: String
+  color: String
+  value: any
+
+  +getLabel(): String
+  +getColor(): String
+  +getValue(): any
+  +setValue(value: any): void
+  +setColor(color: String): void
+}
+
+map "1" *-- "many" migrationLayer
+map "1" *-- "many" cityLayer
+map "1" *-- "many" controls
+map "1" *-- "1" dataManager
+
+dataManager "1" *-- "many" filter
+
+controls "1" *-- "1" filterControl
+controls "1" *-- "1" legendControl
+
+legendControl "1" *-- "many" legendItem
+
+migrationLayer "1" *-- "1" paintStyle
+cityLayer "1" *-- "1" paintStyle
+
+note right of map
+  Основний компонент візуалізації,
+  який керує картою та всіма
+  шарами даних
+end note
+
+note right of dataManager
+  Менеджер даних, який відповідає
+  за завантаження та фільтрацію
+  міграційних даних
+end note
+
+note right of controls
+  Набір контролів для взаємодії
+  з картою та даними
+end note
+@enduml 

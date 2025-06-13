@@ -8,7 +8,7 @@ fi
 
 # Очищаємо базу даних
 echo "Очищення бази даних..."
-docker exec -i migratio_map_neo4j_1 cypher-shell -u neo4j -p password "MATCH (n) DETACH DELETE n"
+docker exec -i migratio_map_neo4j_1 cypher-shell -u neo4j -p test "MATCH (n) DETACH DELETE n"
 
 # Створюємо файл для збереження прогресу
 PROGRESS_FILE="data/processed/load_progress.txt"
@@ -28,13 +28,13 @@ for file in data/processed/batches/batch_*.cypher; do
     echo "Завантаження файлу $file..."
     
     # Спробуємо завантажити дані
-    if docker exec -i migratio_map_neo4j_1 cypher-shell -u neo4j -p password < "$file"; then
+    if docker exec -i migratio_map_neo4j_1 cypher-shell -u neo4j -p test < "$file"; then
         echo "Файл $file успішно завантажено"
         # Зберігаємо прогрес
         echo "$batch_num" > "$PROGRESS_FILE"
         
         # Перевіряємо кількість завантажених міграцій
-        count=$(docker exec -i migratio_map_neo4j_1 cypher-shell -u neo4j -p password "MATCH (m:Migration) RETURN count(m) as count" | tail -n 1)
+        count=$(docker exec -i migratio_map_neo4j_1 cypher-shell -u neo4j -p test "MATCH (m:Migration) RETURN count(m) as count" | tail -n 1)
         echo "Загальна кількість завантажених міграцій: $count"
     else
         echo "Помилка при завантаженні файлу $file"

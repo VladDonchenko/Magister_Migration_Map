@@ -1,0 +1,94 @@
+@startuml
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+' Основні сутності
+class Person {
+  +id: String
+  +firstName: String
+  +lastName: String
+  +gender: String
+  +age: Integer
+  +birthDate: Date
+  +nationality: String
+  +education: String
+  +occupation: String
+}
+
+class City {
+  +id: String
+  +name: String
+  +region: String
+  +country: String
+  +population: Integer
+  +coordinates: Point
+  +timeZone: String
+  +climate: String
+  +economy: String
+}
+
+class Migration {
+  +id: String
+  +date: DateTime
+  +reason: String
+  +duration: Integer
+  +status: String
+  +documentation: String
+}
+
+' Зв'язки між сутностями
+Person "1" -- "0..*" Migration
+City "1" -- "0..*" Migration : from >
+City "1" -- "0..*" Migration : to >
+
+' Додаткові сутності
+class Family {
+  +id: String
+  +type: String
+  +size: Integer
+  +income: Decimal
+  +housing: String
+}
+
+class Education {
+  +id: String
+  +level: String
+  +institution: String
+  +field: String
+  +graduationYear: Integer
+}
+
+class Employment {
+  +id: String
+  +position: String
+  +company: String
+  +industry: String
+  +salary: Decimal
+  +startDate: Date
+}
+
+' Зв'язки з додатковими сутностями
+Person "1" -- "0..*" Family
+Person "1" -- "0..*" Education
+Person "1" -- "0..*" Employment
+
+note right of Person
+  Основна сутність, що представляє
+  людину, яка здійснює міграцію
+end note
+
+note right of City
+  Представляє міста, між якими
+  здійснюється міграція
+end note
+
+note right of Migration
+  Описує процес міграції між
+  містами з усіма деталями
+end note
+
+@enduml 

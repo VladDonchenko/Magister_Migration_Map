@@ -1,0 +1,349 @@
+@startuml
+skinparam class {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+' Стиль для нереалізованих класів
+skinparam class {
+  BackgroundColor<<NotImplemented>> LightGray
+  BorderColor<<NotImplemented>> DarkGray
+  FontColor<<NotImplemented>> DarkGray
+}
+
+' Стилі для різних типів класів
+skinparam class {
+    BackgroundColor<<Frontend>> LightBlue
+    BackgroundColor<<Backend>> LightGreen
+    BackgroundColor<<Model>> LightYellow
+    BackgroundColor<<Service>> LightGray
+}
+
+' Базові класи
+class Person {
+  +id: String
+  +firstName: String
+  +lastName: String
+  +gender: String
+  +age: Integer
+  +migrationHistory: List<Migration>
+  +addMigration(migration: Migration): void
+  +getMigrationHistory(): List<Migration>
+  +getMigrationCount(): Integer
+  +getLastMigration(): Migration
+  +getMigrationByDate(date: DateTime): Migration
+  +calculateAverageMigrationDistance(): Double
+}
+
+class City {
+  +id: String
+  +name: String
+  +coordinates: Point
+  +population: Integer
+  +getIncomingMigrations(): List<Migration>
+  +getOutgoingMigrations(): List<Migration>
+  +calculateMigrationBalance(): Integer
+  +getMigrationTrends(): Map<DateTime, Integer>
+  +updatePopulation(newPopulation: Integer): void
+  +calculateDistanceTo(otherCity: City): Double
+}
+
+class Migration {
+  +id: String
+  +person: Person
+  +fromCity: City
+  +toCity: City
+  +date: DateTime
+  +reason: String
+  +validate(): boolean
+  +calculateDistance(): Double
+  +getDuration(): Duration
+  +isValid(): boolean
+  +toJson(): String
+  +fromJson(json: String): Migration
+}
+
+' Класи для обробки даних
+class DataProcessor {
+  +processStream(data: Stream): void
+  +aggregateStatistics(): Statistics
+  +validateData(data: Object): boolean
+  +detectAnomalies(): List<Anomaly>
+  +calculateMigrationPatterns(): List<Pattern>
+  +predictFutureMigrations(): List<Prediction>
+  +generateReport(): Report
+}
+
+class StreamProcessor {
+  +process(data: Stream): void
+  +filter(condition: Predicate): Stream
+  +transform(data: Stream): Stream
+  +aggregateByTimeWindow(window: Duration): Stream
+  +detectPatterns(): List<Pattern>
+  +handleBackpressure(): void
+  +monitorPerformance(): Metrics
+}
+
+' Класи для роботи з базою даних
+class Neo4jRepository {
+  +save(entity: Object): void
+  +findById(id: String): Object
+  +findAll(): List<Object>
+  +delete(id: String): void
+  +createMigrationRelationship(from: City, to: City, migration: Migration): void
+  +findMigrationPatterns(): List<Pattern>
+  +getCityConnections(city: City): List<City>
+  +calculateMigrationGraph(): Graph
+  +optimizeQueries(): void
+}
+
+class DataMapper {
+  +toEntity(dto: Object): Entity
+  +toDto(entity: Entity): Object
+  +validateMapping(): boolean
+  +handleNullValues(): void
+  +convertDates(): void
+  +normalizeData(): void
+}
+
+' Класи для API
+class MigrationController {
+  +getMigrations(): List<Migration>
+  +getMigration(id: String): Migration
+  +createMigration(migration: Migration): void
+  +updateMigration(id: String, migration: Migration): void
+  +deleteMigration(id: String): void
+  +getMigrationStatistics(): Statistics
+  +getMigrationPatterns(): List<Pattern>
+  +validateMigrationData(data: Migration): boolean
+  +handleErrors(error: Exception): void
+}
+
+class GraphQLResolver {
+  +getMigrations(): List<Migration>
+  +getMigration(id: String): Migration
+  +getPerson(id: String): Person
+  +getCity(id: String): City
+  +resolveMigrationPatterns(): List<Pattern>
+  +resolveStatistics(): Statistics
+  +handleComplexQueries(): Object
+  +optimizeQueryPerformance(): void
+}
+
+' Класи для фронтенду
+class MapVisualization<<Frontend>> {
+  +map: MapboxGL.Map
+  +visualizationLayers: Map<string, Layer>
+  +filters: Filter[]
+  +selectedRegions: string[]
+  +timeRange: TimeRange
+  +visualizationType: VisualizationType
+  +initializeMap(): void
+  +addVisualizationLayer(layer: Layer): void
+  +updateVisualization(): void
+  +applyFilters(filters: Filter[]): void
+  +handleTimeRangeChange(range: TimeRange): void
+  +handleRegionSelection(regions: string[]): void
+}
+
+class UserInterface<<Frontend>> {
+  +components: Map<string, Component>
+  +state: UIState
+  +eventHandlers: Map<string, Function>
+  +initializeComponents(): void
+  +handleUserInteraction(event: Event): void
+  +updateUIState(state: UIState): void
+  +render(): void
+}
+
+class StateManager<<Frontend>> {
+  +store: Store
+  +reducers: Map<string, Reducer>
+  +middleware: Middleware[]
+  +dispatch(action: Action): void
+  +getState(): State
+  +subscribe(listener: Function): void
+}
+
+' Backend класи
+class MigrationDataService<<Backend>> {
+  +dataAccess: DataAccess
+  +cache: Cache
+  +processors: DataProcessor[]
+  +getMigrationData(filters: Filter[]): Promise<MigrationData[]>
+  +processData(data: RawData): ProcessedData
+  +updateCache(key: string, data: any): void
+  +validateData(data: any): boolean
+}
+
+class DataAccess<<Backend>> {
+  +neo4jClient: Neo4jClient
+  +queryBuilder: QueryBuilder
+  +connectionPool: ConnectionPool
+  +executeQuery(query: string, params: any): Promise<Result>
+  +createNode(node: Node): Promise<Node>
+  +createRelationship(rel: Relationship): Promise<Relationship>
+  +findNodesByLabel(label: string): Promise<Node[]>
+}
+
+class StreamProcessor<<Backend>> {
+  +flinkJob: FlinkJob
+  +kafkaConsumer: KafkaConsumer
+  +processors: Map<string, Processor>
+  +startProcessing(): void
+  +processStream(stream: DataStream): void
+  +handleError(error: Error): void
+  +updateMetrics(metrics: Metrics): void
+}
+
+' Моделі даних
+class MigrationData<<Model>> {
+  +id: string
+  +sourceRegion: string
+  +targetRegion: string
+  +timestamp: DateTime
+  +volume: number
+  +demographics: Demographics
+  +economicFactors: EconomicFactors
+  +environmentalFactors: EnvironmentalFactors
+  +calculateMetrics(): Metrics
+  +validate(): boolean
+  +toJSON(): string
+}
+
+class Region<<Model>> {
+  +id: string
+  +name: string
+  +coordinates: Coordinates
+  +population: number
+  +economicIndicators: EconomicIndicators
+  +environmentalIndicators: EnvironmentalIndicators
+  +getMigrationStats(): MigrationStats
+  +calculateAttractiveness(): number
+  +updateIndicators(indicators: Indicators): void
+}
+
+class Metrics<<Model>> {
+  +id: string
+  +regionId: string
+  +timestamp: DateTime
+  +migrationVolume: number
+  +economicImpact: number
+  +environmentalImpact: number
+  +socialImpact: number
+  +calculateTotalImpact(): number
+  +compareWithBaseline(baseline: Metrics): Comparison
+  +generateReport(): Report
+}
+
+' Сервіси
+class AnalysisService<<Service>> {
+  +dataService: MigrationDataService
+  +metricsCalculator: MetricsCalculator
+  +patternRecognizer: PatternRecognizer
+  +analyzeMigrationPatterns(data: MigrationData[]): AnalysisResult
+  +calculateMetrics(data: MigrationData[]): Metrics[]
+  +detectAnomalies(data: MigrationData[]): Anomaly[]
+  +generateForecast(data: MigrationData[]): Forecast
+}
+
+class VisualizationService<<Service>> {
+  +mapService: MapService
+  +dataTransformer: DataTransformer
+  +styleManager: StyleManager
+  +createVisualization(data: any, type: string): Visualization
+  +updateVisualization(visualization: Visualization, data: any): void
+  +applyStyle(visualization: Visualization, style: Style): void
+  +exportVisualization(visualization: Visualization, format: string): Blob
+}
+
+' Зв'язки між класами
+Person "1" -- "*" Migration
+City "1" -- "*" Migration
+Migration "1" -- "1" Person
+Migration "1" -- "1" City
+
+DataProcessor <|-- StreamProcessor
+Neo4jRepository --> DataMapper
+MigrationController --> Neo4jRepository
+GraphQLResolver --> Neo4jRepository
+MapVisualization --> DataFilter
+MapVisualization --> MigrationController
+
+' Зв'язки між ключовими полями
+MigrationData "1" -- "2" Region : "sourceRegion, targetRegion"
+Region "1" -- "*" Metrics : "regionId"
+Metrics "1" -- "1" MigrationData : "id"
+AnalysisService "1" -- "*" Metrics : "calculates"
+VisualizationService "1" -- "*" Metrics : "visualizes"
+
+' Зв'язки між ключовими полями
+MapVisualization "1" -- "1" UserInterface : uses
+UserInterface "1" -- "1" StateManager : manages
+MigrationDataService "1" -- "1" DataAccess : uses
+StreamProcessor "1" -- "*" MigrationData : processes
+AnalysisService "1" -- "1" MigrationDataService : uses
+VisualizationService "1" -- "1" MapVisualization : provides
+
+' Зв'язки між полями
+Person::id --> Migration::person
+City::id --> Migration::fromCity
+City::id --> Migration::toCity
+Migration::id --> Metrics::id
+Region::id --> MigrationData::sourceRegion
+Region::id --> MigrationData::targetRegion
+Region::id --> Metrics::regionId
+MigrationData::id --> Metrics::id
+Metrics::id --> AnalysisService::metricsCalculator
+Metrics::id --> VisualizationService::dataTransformer
+
+note right of Person
+  Клас, що представляє людину
+  з її міграційною історією
+  та методами для аналізу
+  міграцій
+end note
+
+note right of City
+  Клас, що представляє місто
+  з його координатами,
+  населенням та методами
+  для аналізу міграцій
+end note
+
+note right of Migration
+  Клас, що представляє
+  міграцію між містами
+  з методами валідації
+  та обробки даних
+end note
+
+note right
+  Класи з позначкою <<NotImplemented>>
+  ще не реалізовані в системі
+end note
+
+note right of MapVisualization
+  Компонент візуалізації міграційних
+  потоків на карті з можливістю
+  інтерактивної взаємодії
+end note
+
+note right of MigrationDataService
+  Сервіс для роботи з даними
+  про міграцію, включаючи
+  обробку та кешування
+end note
+
+note right of StreamProcessor
+  Компонент для обробки
+  потокових даних на Apache Flink
+end note
+
+note right of AnalysisService
+  Сервіс для аналізу
+  міграційних патернів та
+  генерації прогнозів
+end note
+@enduml 

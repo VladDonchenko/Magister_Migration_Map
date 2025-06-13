@@ -1,0 +1,121 @@
+@startuml
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+' Вузли Neo4j
+node Person {
+  +id: String (PK)
+  +first_name: String
+  +last_name: String
+  +gender: String
+  +age: Integer
+  +birth_date: Date
+  +nationality: String
+  +education_level: String
+  +occupation: String
+  +created_at: DateTime
+  +updated_at: DateTime
+}
+
+node City {
+  +id: String (PK)
+  +name: String
+  +region: String
+  +country: String
+  +population: Integer
+  +latitude: Float
+  +longitude: Float
+  +time_zone: String
+  +climate_type: String
+  +economy_type: String
+  +created_at: DateTime
+  +updated_at: DateTime
+}
+
+node Migration {
+  +id: String (PK)
+  +migration_date: DateTime
+  +reason: String
+  +duration_days: Integer
+  +status: String
+  +documentation_url: String
+  +created_at: DateTime
+  +updated_at: DateTime
+}
+
+node Family {
+  +id: String (PK)
+  +family_type: String
+  +size: Integer
+  +monthly_income: Decimal
+  +housing_type: String
+  +created_at: DateTime
+  +updated_at: DateTime
+}
+
+node Education {
+  +id: String (PK)
+  +education_level: String
+  +institution_name: String
+  +field_of_study: String
+  +graduation_year: Integer
+  +created_at: DateTime
+  +updated_at: DateTime
+}
+
+node Employment {
+  +id: String (PK)
+  +position: String
+  +company_name: String
+  +industry: String
+  +monthly_salary: Decimal
+  +start_date: Date
+  +created_at: DateTime
+  +updated_at: DateTime
+}
+
+' Зв'язки Neo4j
+Person --|> Migration : "MIGRATES"
+City --|> Migration : "FROM_CITY"
+City --|> Migration : "TO_CITY"
+Person --|> Family : "HAS_FAMILY"
+Person --|> Education : "HAS_EDUCATION"
+Person --|> Employment : "HAS_EMPLOYMENT"
+
+' Індекси
+note right of Person
+  CREATE INDEX person_id_index
+  FOR (p:Person) ON (p.id)
+end note
+
+note right of City
+  CREATE INDEX city_id_index
+  FOR (c:City) ON (c.id)
+end note
+
+note right of Migration
+  CREATE INDEX migration_id_index
+  FOR (m:Migration) ON (m.id)
+end note
+
+' Ограничения
+note right of Person
+  CONSTRAINT person_id_unique
+  ON (p:Person) ASSERT p.id IS UNIQUE
+end note
+
+note right of City
+  CONSTRAINT city_id_unique
+  ON (c:City) ASSERT c.id IS UNIQUE
+end note
+
+note right of Migration
+  CONSTRAINT migration_id_unique
+  ON (m:Migration) ASSERT m.id IS UNIQUE
+end note
+
+@enduml 

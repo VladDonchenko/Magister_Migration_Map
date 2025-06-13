@@ -1,0 +1,139 @@
+@startuml
+skinparam componentStyle uml2
+skinparam component {
+    BackgroundColor<<Frontend>> LightBlue
+    BackgroundColor<<Backend>> LightGreen
+    BackgroundColor<<External>> LightGray
+    BackgroundColor<<API>> LightYellow
+}
+
+package "Migration Map System" {
+    package "Frontend" {
+        [Map Visualization]<<Frontend>> as MV
+        [User Interface]<<Frontend>> as UI
+        [State Manager]<<Frontend>> as SM
+        [Filters Panel]<<Frontend>> as FP
+        [Statistics Panel]<<Frontend>> as SP
+        
+        package "Frontend APIs" {
+            [Mapbox GL]<<API>> as MGL
+            [React]<<API>> as REACT
+            [Redux]<<API>> as REDUX
+            [D3.js]<<API>> as D3
+        }
+    }
+
+    package "Backend" {
+        [API Gateway]<<Backend>> as AG
+        [Business Services]<<Backend>> as BS
+        [Data Access]<<Backend>> as DA
+        [Statistics Service]<<Backend>> as SS
+        [Data Aggregator Service]<<Backend>> as DAS
+    }
+
+    package "Data Processing" {
+        [Stream Processor]<<Backend>> as SP
+        [Kafka Handler]<<Backend>> as KH
+        [Metrics Calculator]<<Backend>> as MC
+        [Stream Data Aggregator]<<Backend>> as SDA
+    }
+
+    package "External Services" {
+        [Neo4j Database]<<External>> as DB
+        [Graph Database]<<External>> as GD
+        [Query Optimizer]<<External>> as QO
+        [Index Manager]<<External>> as IM
+        [External Data Sources]<<External>> as EDS
+    }
+}
+
+' Інтерфейси
+interface "IMigrationData" as IMD
+interface "IAnalysisService" as IAS
+interface "IDataAccess" as IDA
+interface "IStreamProcessing" as ISP
+interface "IKafkaInterface" as IKI
+interface "IFilterService" as IFS
+interface "IStatisticsService" as ISS
+
+' Frontend to Backend
+MV -down-> IMD
+BS -up- IMD
+
+UI -down-> IAS
+BS -up- IAS
+
+FP -down-> IFS
+BS -up- IFS
+
+SP -down-> ISS
+SS -up- ISS
+
+' Backend взаємодії
+AG -right-> BS
+BS -right-> DA
+DA -down-> DB : "зберігає дані"
+BS -right-> SS
+SS -right-> DA
+BS -right-> DAS
+
+' Data Processing взаємодії
+SP -down-> ISP
+BS -up- ISP
+MC -right-> SP
+SDA -right-> SP
+
+KH -down-> IKI
+EDS -up- IKI
+
+' Database взаємодії
+DA -down-> IDA
+DB -up- IDA
+GD -right-> DB
+QO -right-> DB
+IM -right-> DB
+
+' Frontend API взаємодії
+MV -right-> MGL : "використовує"
+UI -right-> REACT : "використовує"
+SM -right-> REDUX : "використовує"
+MV -right-> D3 : "використовує"
+FP -right-> REACT : "використовує"
+SP -right-> D3 : "використовує"
+
+note right of MV
+  Компонент візуалізації міграційних
+  потоків на карті з можливістю
+  інтерактивної взаємодії та
+  різними типами візуалізації
+end note
+
+note right of BS
+  Бізнес-сервіси для обробки
+  міграційних даних, аналізу
+  патернів міграції та
+  застосування фільтрів
+end note
+
+note right of SP
+  Система обробки потокових
+  даних на Apache Flink для
+  реальновременного аналізу,
+  агрегації та обчислення
+  складних метрик
+end note
+
+note right of DB
+  Графова база даних Neo4j
+  для зберігання міграційних
+  даних та їх зв'язків.
+  Оптимізована для роботи
+  з великими обсягами даних
+end note
+
+note right of EDS
+  Зовнішні джерела даних,
+  які постачають інформацію
+  про міграцію
+end note
+@enduml 

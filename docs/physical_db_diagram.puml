@@ -1,0 +1,213 @@
+@startuml
+!define NODE class
+!define RELATIONSHIP class
+
+allowmixing
+
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+' Вузли Neo4j з конкретними властивостями
+NODE Person {
+  +id: String(36) (PK, indexed)
+  +first_name: String(50) (indexed)
+  +last_name: String(50) (indexed)
+  +gender: String(10)
+  +age: Integer
+  +birth_date: Date
+  +nationality: String(50)
+  +education_level: String(50)
+  +occupation: String(100)
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+}
+
+NODE City {
+  +id: String(36) (PK, indexed)
+  +name: String(100) (indexed)
+  +region: String(100) (indexed)
+  +country: String(100) (indexed)
+  +population: Integer
+  +latitude: Float(10,6) (indexed)
+  +longitude: Float(10,6) (indexed)
+  +time_zone: String(50)
+  +climate_type: String(50)
+  +economy_type: String(50)
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+}
+
+NODE Migration {
+  +id: String(36) (PK, indexed)
+  +migration_date: DateTime (indexed)
+  +reason: String(200)
+  +duration_days: Integer
+  +status: String(50)
+  +documentation_url: String(500)
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+}
+
+NODE Family {
+  +id: String(36) (PK, indexed)
+  +family_type: String(50)
+  +size: Integer
+  +monthly_income: Decimal(15,2)
+  +housing_type: String(50)
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+}
+
+NODE Education {
+  +id: String(36) (PK, indexed)
+  +education_level: String(50)
+  +institution_name: String(200)
+  +field_of_study: String(100)
+  +graduation_year: Integer
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+}
+
+NODE Employment {
+  +id: String(36) (PK, indexed)
+  +position: String(100)
+  +company_name: String(200)
+  +industry: String(100)
+  +monthly_salary: Decimal(15,2)
+  +start_date: Date
+  +created_at: DateTime
+  +updated_at: DateTime
+  +version: Integer
+}
+
+' Зв'язки Neo4j з властивостями
+Person --> Migration : "MIGRATES"
+note right on link
+  +migration_type: String(50)
+  +created_at: DateTime
+end note
+
+City --> Migration : "FROM_CITY"
+note right on link
+  +distance: Float(10,2)
+  +created_at: DateTime
+end note
+
+City --> Migration : "TO_CITY"
+note right on link
+  +distance: Float(10,2)
+  +created_at: DateTime
+end note
+
+Person --> Family : "HAS_FAMILY"
+note right on link
+  +relation_type: String(50)
+  +created_at: DateTime
+end note
+
+Person --> Education : "HAS_EDUCATION"
+note right on link
+  +degree: String(100)
+  +created_at: DateTime
+end note
+
+Person --> Employment : "HAS_EMPLOYMENT"
+note right on link
+  +contract_type: String(50)
+  +created_at: DateTime
+end note
+
+' Індекси
+note right of Person
+  CREATE INDEX person_id_index
+  FOR (p:Person) ON (p.id);
+  CREATE INDEX person_name_index
+  FOR (p:Person) ON (p.first_name, p.last_name);
+  CREATE INDEX person_age_index
+  FOR (p:Person) ON (p.age);
+end note
+
+note right of City
+  CREATE INDEX city_id_index
+  FOR (c:City) ON (c.id);
+  CREATE INDEX city_name_index
+  FOR (c:City) ON (c.name);
+  CREATE INDEX city_location_index
+  FOR (c:City) ON (c.latitude, c.longitude);
+  CREATE INDEX city_region_index
+  FOR (c:City) ON (c.region);
+end note
+
+note right of Migration
+  CREATE INDEX migration_id_index
+  FOR (m:Migration) ON (m.id);
+  CREATE INDEX migration_date_index
+  FOR (m:Migration) ON (m.migration_date);
+end note
+
+' Обмеження
+note right of Person
+  CREATE CONSTRAINT person_id_unique
+  ON (p:Person) ASSERT p.id IS UNIQUE;
+end note
+
+note right of City
+  CREATE CONSTRAINT city_id_unique
+  ON (c:City) ASSERT c.id IS UNIQUE;
+end note
+
+note right of Migration
+  CREATE CONSTRAINT migration_id_unique
+  ON (m:Migration) ASSERT m.id IS UNIQUE;
+end note
+
+' Типи зв'язків
+note right of Person
+  Зв'язки:
+  - One-to-Many з Migration
+  - One-to-One з Family
+  - One-to-Many з Education
+  - One-to-Many з Employment
+end note
+
+note right of City
+  Зв'язки:
+  - One-to-Many з Migration (FROM_CITY)
+  - One-to-Many з Migration (TO_CITY)
+end note
+
+note right of Migration
+  Зв'язки:
+  - Many-to-One з Person
+  - Many-to-One з City (FROM_CITY)
+  - Many-to-One з City (TO_CITY)
+end note
+
+' Оптимізація запитів
+note right
+  OPTIMIZE FOR QUERY:
+  MATCH (p:Person)-[:MIGRATES]->(m:Migration)
+  WHERE p.id = $personId
+  RETURN m;
+  
+  OPTIMIZE FOR QUERY:
+  MATCH (c:City)<-[:FROM_CITY]-(m:Migration)
+  WHERE c.id = $cityId
+  RETURN m;
+  
+  OPTIMIZE FOR QUERY:
+  MATCH (c:City)<-[:TO_CITY]-(m:Migration)
+  WHERE c.id = $cityId
+  RETURN m;
+end note
+
+@enduml 

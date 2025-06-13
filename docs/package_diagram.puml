@@ -1,0 +1,128 @@
+@startuml
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+' Стиль для нереалізованих пакетів
+skinparam package {
+  BackgroundColor<<NotImplemented>> LightGray
+  BorderColor<<NotImplemented>> DarkGray
+}
+
+' Frontend пакет
+package "Frontend" {
+  package "UI Components" {
+    [Map Visualization]
+    [Data Filters]
+    [User Interface]
+  }
+  
+  package "State Management" {
+    [Redux Store]
+    [State Reducers]
+  }
+  
+  package "API Client" {
+    [REST Client]
+    [GraphQL Client]
+  }
+  
+  package "File Operations" <<NotImplemented>> {
+    [Excel Export]
+    [Excel Import]
+    [File Upload]
+  }
+}
+
+' Backend пакет
+package "Backend" {
+  package "API Layer" {
+    [REST Controllers]
+    [GraphQL Resolvers]
+  }
+  
+  package "Business Logic" {
+    [Migration Service]
+    [Data Processing]
+    [Statistics Service]
+  }
+  
+  package "Data Access" {
+    [Neo4j Repository]
+    [Data Mappers]
+  }
+  
+  package "File Processing" <<NotImplemented>> {
+    [Excel Parser]
+    [Data Validator]
+    [Import Service]
+  }
+}
+
+' Flink пакет
+package "Flink" {
+  package "Stream Processing" {
+    [Data Pipeline]
+    [Aggregation Jobs]
+  }
+  
+  package "Kafka Integration" {
+    [Kafka Consumer]
+    [Message Processor]
+  }
+}
+
+' Database пакет
+package "Database" {
+  [Neo4j Database]
+  [Data Models]
+}
+
+' Зв'язки між пакетами
+[UI Components] --> [State Management]
+[State Management] --> [API Client]
+[API Client] --> [REST Controllers]
+[API Client] --> [GraphQL Resolvers]
+[REST Controllers] --> [Business Logic]
+[GraphQL Resolvers] --> [Business Logic]
+[Business Logic] --> [Data Access]
+[Data Access] --> [Neo4j Database]
+[Data Pipeline] --> [Kafka Consumer]
+[Kafka Consumer] --> [Message Processor]
+[Message Processor] --> [Data Processing]
+[Excel Export] --> [REST Controllers]
+[Excel Import] --> [REST Controllers]
+[File Upload] --> [REST Controllers]
+[Excel Parser] --> [Data Processing]
+[Data Validator] --> [Data Processing]
+[Import Service] --> [Data Access]
+
+note right of Frontend
+  Веб-інтерфейс системи,
+  побудований на сучасному
+  JavaScript фреймворку
+end note
+
+note right of Backend
+  Бекенд система на Python,
+  яка обробляє запити та
+  взаємодіє з базою даних
+end note
+
+note right of Flink
+  Система обробки потокових
+  даних на Apache Flink
+end note
+
+note right of Database
+  Графова база даних Neo4j
+  для зберігання міграційних
+  даних
+end note
+
+note right
+  Позначення <<NotImplemented>>
+  вказує на компоненти,
+  які ще не реалізовані
+end note
+@enduml 

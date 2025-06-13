@@ -1,0 +1,83 @@
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecaseStyle uml2
+
+' Стиль для нереалізованих прецедентів
+skinparam usecase {
+  BackgroundColor<<NotImplemented>> LightGray
+  BorderColor<<NotImplemented>> DarkGray
+}
+
+' Основні актори
+actor "Користувач" as User
+actor "Система Flink" as Flink
+actor "Система Kafka" as Kafka
+
+' Підсистеми
+rectangle "Система Візуалізації Міграцій" {
+  ' Use Cases для користувача
+  usecase "Перегляд міграційних потоків" as UC1
+  usecase "Фільтрація даних" as UC2
+  usecase "Експорт даних" as UC3 <<NotImplemented>>
+  usecase "Налаштування відображення" as UC6
+  usecase "Аналіз міграційних трендів" as UC7
+  usecase "Завантаження Excel файлів" as UC8 <<NotImplemented>>
+  usecase "Масовий імпорт даних" as UC9 <<NotImplemented>>
+  
+  ' Use Cases для Flink
+  usecase "Обробка потокових даних" as UC5
+  usecase "Агрегація статистики" as UC10
+  
+  ' Use Cases для Kafka
+  usecase "Прийом даних" as UC11
+  usecase "Розподіл повідомлень" as UC12
+}
+
+' Зв'язки акторів з Use Cases
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+
+Flink --> UC5
+Flink --> UC10
+
+Kafka --> UC11
+Kafka --> UC12
+
+' Включення та розширення
+UC1 ..> UC2 : <<include>>
+UC1 ..> UC6 : <<include>>
+UC5 ..> UC10 : <<include>>
+UC11 ..> UC12 : <<include>>
+UC8 ..> UC9 : <<include>>
+
+note right of User
+  Користувач системи,
+  який переглядає та аналізує
+  дані про міграцію
+end note
+
+note right of Flink
+  Система обробки потокових даних,
+  яка аналізує та агрегує
+  міграційну інформацію
+end note
+
+note right of Kafka
+  Система обміну повідомленнями,
+  яка забезпечує надійну
+  доставку даних
+end note
+
+note right
+  Позначення <<NotImplemented>>
+  вказує на функціонал,
+  який ще не реалізований
+end note
+@enduml 

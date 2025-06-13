@@ -19,13 +19,16 @@ class MigrationPatternModel:
         
     def build_model(self):
         """Створення архітектури нейронної мережі"""
+        # Установка значения по умолчанию для количества классов, если label_encoder еще не обучен
+        num_classes = len(self.label_encoder.classes_) if hasattr(self.label_encoder, 'classes_') else 5
+        
         self.model = tf.keras.Sequential([
             tf.keras.layers.Dense(64, activation='relu', input_shape=(len(self.feature_columns),)),
             tf.keras.layers.Dropout(0.3),
             tf.keras.layers.Dense(32, activation='relu'),
             tf.keras.layers.Dropout(0.3),
             tf.keras.layers.Dense(16, activation='relu'),
-            tf.keras.layers.Dense(len(self.label_encoder.classes_), activation='softmax')
+            tf.keras.layers.Dense(num_classes, activation='softmax')
         ])
         
         self.model.compile(
@@ -102,12 +105,21 @@ class MigrationPatternModel:
     def save_model(self, model_dir: str = "models"):
         """Збереження моделі та препроцесорів"""
         os.makedirs(model_dir, exist_ok=True)
-        self.model.save(f"{model_dir}/migration_model")
+        self.model.save_weights(f"{model_dir}/migration_model_weights.h5")
         joblib.dump(self.scaler, f"{model_dir}/scaler.pkl")
         joblib.dump(self.label_encoder, f"{model_dir}/label_encoder.pkl")
     
     def load_model(self, model_dir: str = "models"):
         """Завантаження моделі та препроцесорів"""
-        self.model = tf.keras.models.load_model(f"{model_dir}/migration_model")
-        self.scaler = joblib.load(f"{model_dir}/scaler.pkl")
-        self.label_encoder = joblib.load(f"{model_dir}/label_encoder.pkl") 
+        try:
+            if self.model is None:
+                self.build_model()
+            self.model.load_weights(f"{model_dir}/migration_model_weights.h5")
+        except:
+            print("Не вдалося завантажити модель. Створюємо нову.")
+            self.build_model()
+        try:
+            self.scaler = joblib.load(f"{model_dir}/scaler.pkl")
+            self.label_encoder = joblib.load(f"{model_dir}/label_encoder.pkl")
+        except:
+            print("Не вдалося завантажити препроцесори. Використовуємо нові.") 

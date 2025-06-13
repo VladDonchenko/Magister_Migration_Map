@@ -1,0 +1,190 @@
+@startuml
+skinparam class {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+class AnalysisManager {
+  -dataSource: DataSource
+  -metrics: List<Metric>
+  -reports: List<Report>
+  -visualizations: List<Visualization>
+  +initializeAnalysis(): void
+  +addMetric(metric: Metric): void
+  +removeMetric(metricId: String): void
+  +generateReport(timeRange: TimeRange): Report
+  +createVisualization(data: DataSet): Visualization
+  +analyzeMigrationPatterns(): List<Pattern>
+  +detectAnomalies(): List<Anomaly>
+  +predictFutureMigrations(): List<Prediction>
+  +optimizeAnalysis(): void
+}
+
+class DataSource {
+  -neo4jClient: Neo4jClient
+  -cache: Cache
+  -queryBuilder: QueryBuilder
+  +fetchData(query: String): DataSet
+  +updateCache(): void
+  +clearCache(): void
+  +buildQuery(filters: List<Filter>): String
+  +validateQuery(query: String): boolean
+  +optimizeQuery(query: String): String
+  +handleConnectionError(): void
+}
+
+class Metric {
+  -name: String
+  -type: MetricType
+  -calculation: Function
+  -parameters: List<Parameter>
+  +calculate(data: DataSet): Result
+  +validateParameters(): boolean
+  +getDescription(): String
+  +updateParameters(params: List<Parameter>): void
+  +getType(): MetricType
+  +serialize(): String
+}
+
+class Report {
+  -title: String
+  -metrics: List<Metric>
+  -period: TimeRange
+  -format: ReportFormat
+  -template: Template
+  +generate(): Document
+  +addMetric(metric: Metric): void
+  +removeMetric(metricId: String): void
+  +export(format: ExportFormat): File
+  +validate(): boolean
+  +getSummary(): String
+}
+
+class Visualization {
+  -type: VisualizationType
+  -data: DataSet
+  -options: VisualizationOptions
+  -renderer: Renderer
+  +render(): void
+  +updateData(data: DataSet): void
+  +applyOptions(options: VisualizationOptions): void
+  +export(format: ExportFormat): File
+  +interact(event: UserEvent): void
+  +optimizeRendering(): void
+}
+
+class QueryBuilder {
+  -baseQuery: String
+  -filters: List<Filter>
+  -aggregations: List<Aggregation>
+  -parameters: List<Parameter>
+  +build(): String
+  +addFilter(filter: Filter): void
+  +removeFilter(filterId: String): void
+  +addAggregation(aggregation: Aggregation): void
+  +validate(): boolean
+  +optimize(): void
+}
+
+class Cache {
+  -data: Map<String, DataSet>
+  -ttl: Duration
+  -strategy: CacheStrategy
+  +get(key: String): DataSet
+  +put(key: String, value: DataSet): void
+  +invalidate(key: String): void
+  +clear(): void
+  +isValid(key: String): boolean
+  +updateStrategy(strategy: CacheStrategy): void
+}
+
+class Renderer {
+  -type: RendererType
+  -options: RenderOptions
+  -theme: Theme
+  +render(data: DataSet): void
+  +applyTheme(theme: Theme): void
+  +updateOptions(options: RenderOptions): void
+  +handleError(error: Error): void
+  +optimizePerformance(): void
+}
+
+class DataSet {
+  -columns: List<Column>
+  -rows: List<Row>
+  -metadata: Metadata
+  +addColumn(column: Column): void
+  +removeColumn(columnName: String): void
+  +addRow(row: Row): void
+  +removeRow(index: Integer): void
+  +filter(predicate: Predicate): DataSet
+  +sort(comparator: Comparator): DataSet
+  +aggregate(aggregation: Aggregation): Result
+  +validate(): boolean
+}
+
+class Column {
+  -name: String
+  -type: DataType
+  -format: Format
+  +getValue(row: Row): any
+  +setValue(row: Row, value: any): void
+  +validate(value: any): boolean
+  +convert(value: any): any
+  +getStatistics(): Statistics
+}
+
+class Row {
+  -values: Map<String, any>
+  -metadata: RowMetadata
+  +getValue(columnName: String): any
+  +setValue(columnName: String, value: any): void
+  +validate(): boolean
+  +toJson(): String
+  +fromJson(json: String): Row
+}
+
+' Зв'язки між класами
+AnalysisManager "1" *-- "1" DataSource
+AnalysisManager "1" *-- "many" Metric
+AnalysisManager "1" *-- "many" Report
+AnalysisManager "1" *-- "many" Visualization
+
+DataSource "1" *-- "1" Neo4jClient
+DataSource "1" *-- "1" Cache
+DataSource "1" *-- "1" QueryBuilder
+
+Report "1" *-- "many" Metric
+Report "1" *-- "1" Template
+
+Visualization "1" *-- "1" DataSet
+Visualization "1" *-- "1" Renderer
+
+DataSet "1" *-- "many" Column
+DataSet "1" *-- "many" Row
+
+note right of AnalysisManager
+  Основний компонент аналізу,
+  який керує всіма процесами
+  обробки та візуалізації даних.
+  Включає методи для аналізу
+  міграційних патернів та
+  прогнозування.
+end note
+
+note right of DataSource
+  Джерело даних, яке забезпечує
+  доступ до Neo4j та кешування.
+  Включає методи для оптимізації
+  запитів та обробки помилок.
+end note
+
+note right of Visualization
+  Компонент візуалізації,
+  який відповідає за відображення
+  результатів аналізу.
+  Підтримує різні типи візуалізацій
+  та інтерактивність.
+end note
+@enduml 

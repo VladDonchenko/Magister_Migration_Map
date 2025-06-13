@@ -1,0 +1,9 @@
+3b9d924bde88   migratio_map_nginx                "/docker-entrypoint.…"   56 minutes ago   Exited (0) 47 minutes ago               migratio_map_nginx_1
+9fde6afa398a   migratio_map_frontend             "/docker-entrypoint.…"   56 minutes ago   Exited (0) 47 minutes ago               migratio_map_frontend_1
+43605e16fc56   migratio_map_backend              "uvicorn src.main:ap…"   56 minutes ago   Exited (0) 47 minutes ago               migratio_map_backend_1
+b9e786b706c5   flink:1.15.0-scala_2.12           "/docker-entrypoint.…"   56 minutes ago   Exited (1) 56 minutes ago               migratio_map_flink-taskmanager_1
+5c6ab17790af   migratio_map_flink-job            "/docker-entrypoint.…"   56 minutes ago   Exited (137) 47 minutes ago             migratio_map_flink-job_1
+7411a1cf8731   flink:1.15.0-scala_2.12           "/docker-entrypoint.…"   56 minutes ago   Exited (239) 56 minutes ago             7411a1cf8731_migratio_map_flink_1
+8e37ce7352f9   confluentinc/cp-kafka:7.3.0       "/etc/confluent/dock…"   56 minutes ago   Exited (1) 55 minutes ago               migratio_map_kafka_1
+e23a40eebfaa   confluentinc/cp-zookeeper:7.3.0   "/etc/confluent/dock…"   56 minutes ago   Exited (10) 56 minutes ago              e23a40eebfaa_migratio_map_zookeeper_1
+71f8a19872ee   neo4j:4.4                         "tini -g -- /startup…"   56 minutes ago   Exited (0) 47 minutes ago               71f8a19872ee_migratio_map_neo4j_1 

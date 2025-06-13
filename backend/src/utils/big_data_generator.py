@@ -7,6 +7,10 @@ import pandas as pd
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 import os
+from neo4j import GraphDatabase
+import logging
+from kafka import KafkaProducer
+import time
 
 class BigDataGenerator:
     def __init__(self):
@@ -45,14 +49,113 @@ class BigDataGenerator:
             "Екологічні причини": 0.03,
             "Особисті причини": 0.02
         }
+        
+        # Подключение к Neo4j
+        self.driver = GraphDatabase.driver("neo4j://localhost:7687", auth=("neo4j", "password"))
+        
+        # Подключение к Kafka
+        self.kafka_producer = KafkaProducer(
+            bootstrap_servers='localhost:9092',
+            value_serializer=lambda v: json.dumps(v).encode('utf-8')
+        )
+
+    def close(self):
+        """Закрытие соединений"""
+        if self.driver:
+            self.driver.close()
+        if self.kafka_producer:
+            self.kafka_producer.close()
+
+    def init_neo4j_schema(self):
+        """Инициализация схемы данных в Neo4j"""
+        with self.driver.session() as session:
+            # Создаем узлы для городов
+            for city in self.cities:
+                session.run("""
+                    MERGE (c:City {name: $name})
+                    SET c.latitude = $lat,
+                        c.longitude = $lng,
+                        c.population = $population
+                """, city)
+            
+            # Создаем узлы для причин миграции
+            for reason in self.reasons:
+                session.run("""
+                    MERGE (r:Reason {name: $reason})
+                """, {"reason": reason})
+
+    def stream_to_kafka(self, records_per_second: int = 10, total_records: int = None):
+        """Потоковая отправка данных в Kafka"""
+        print(f"Начинаем потоковую отправку данных в Kafka ({records_per_second} записей в секунду)...")
+        records_sent = 0
+        
+        try:
+            while True:
+                if total_records and records_sent >= total_records:
+                    break
+                    
+                migration = self.generate_migration(random.choice(self.cities)["population"])
+                self.kafka_producer.send('migrations', value=migration)
+                records_sent += 1
+                
+                if records_sent % 100 == 0:
+                    print(f"Отправлено записей: {records_sent}")
+                
+                time.sleep(1.0 / records_per_second)
+                
+        except KeyboardInterrupt:
+            print("\nОстановка отправки данных...")
+        finally:
+            print(f"Всего отправлено записей: {records_sent}")
+
+    def save_to_neo4j(self, migrations: List[Dict]):
+        """Сохранение данных в Neo4j"""
+        print("Сохранение данных в Neo4j...")
+        
+        # Инициализируем схему
+        self.init_neo4j_schema()
+        
+        # Сохраняем данные батчами
+        batch_size = 1000
+        total_batches = len(migrations) // batch_size + (1 if len(migrations) % batch_size > 0 else 0)
+        
+        with self.driver.session() as session:
+            for i in range(0, len(migrations), batch_size):
+                batch = migrations[i:i+batch_size]
+                
+                # Создаем узлы Person и отношения
+                for migration in batch:
+                    session.run("""
+                        MERGE (p:Person {id: $id})
+                        SET p.name = $person_name,
+                            p.gender = $gender,
+                            p.age = $age
+                        
+                        WITH p
+                        MATCH (from_city:City {name: $from_city})
+                        MATCH (to_city:City {name: $to_city})
+                        MATCH (reason:Reason {name: $reason})
+                        
+                        CREATE (p)-[:MIGRATED {
+                            date: date($migration_date),
+                            distance_km: $distance_km
+                        }]->(to_city)
+                        
+                        CREATE (p)-[:FROM]->(from_city)
+                        CREATE (p)-[:FOR_REASON]->(reason)
+                    """, migration)
+                
+                print(f"Прогресс: {min((i+batch_size)//batch_size, total_batches)}/{total_batches} батчей")
+        
+        print("Данные успешно сохранены в Neo4j")
 
     def generate_migration(self, city_population: int) -> Dict:
         """Генерація одного запису міграції з урахуванням населення міста"""
         from_city = random.choice(self.cities)
         to_city = random.choice([city for city in self.cities if city != from_city])
         
-        # Генерація дати за останні 3 місяці
-        days_ago = random.randint(0, 90)
+        # Генерація дати за останні 5 років
+        days_ago = random.randint(0, 365 * 5)
         migration_date = datetime.now() - timedelta(days=days_ago)
         
         # Розрахунок відстані
@@ -77,53 +180,59 @@ class BigDataGenerator:
             "gender": random.choice(["Чоловік", "Жінка"]),
             "age": age,
             "migration_date": migration_date.strftime("%Y-%m-%d"),
-            "from_city": from_city,
-            "to_city": to_city,
+            "from_city": from_city["name"],
+            "to_city": to_city["name"],
             "reason": reason,
-            "distance_km": round(distance, 2),
-            "additional_info": f"Додаткова інформація для міграції {random.randint(1, 1000)}"
+            "distance_km": round(distance, 2)
         }
 
     def generate_batch(self, batch_size: int) -> List[Dict]:
         """Генерація партії даних"""
-        return [self.generate_migration(city["population"]) for _ in range(batch_size)]
+        return [self.generate_migration(random.choice(self.cities)["population"]) for _ in range(batch_size)]
 
-    def generate_large_dataset(self, total_records: int = 1000000, batch_size: int = 10000):
+    def generate_large_dataset(self, total_records: int = 1000000, batch_size: int = 10000, save_to_neo4j: bool = True):
         """Генерація великого набору даних з використанням багатопотоковості"""
+        os.makedirs('data', exist_ok=True)
+        
         batches = []
         num_batches = total_records // batch_size
-
+        
+        print(f"Генерация {total_records} записей...")
         with ThreadPoolExecutor(max_workers=4) as executor:
             futures = [executor.submit(self.generate_batch, batch_size) for _ in range(num_batches)]
-            for future in futures:
-                batches.extend(future.result())
-
+            for i, future in enumerate(futures):
+                batch = future.result()
+                batches.extend(batch)
+                print(f"Прогресс: {(i+1)*batch_size}/{total_records} записей")
+        
+        # Сохраняем данные в разных форматах
+        df = pd.DataFrame(batches)
+        
+        # Сохранение в CSV
+        csv_path = 'data/migrations.csv'
+        df.to_csv(csv_path, index=False, encoding='utf-8')
+        print(f"Данные сохранены в CSV: {csv_path}")
+        
+        # Сохранение в JSON
+        json_path = 'data/migrations.json'
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(batches, f, ensure_ascii=False, indent=2)
+        print(f"Данные сохранены в JSON: {json_path}")
+        
+        # Сохранение в Neo4j
+        if save_to_neo4j:
+            self.save_to_neo4j(batches)
+        
         return batches
-
-    def save_to_files(self, migrations: List[Dict], output_dir: str = "data/raw"):
-        """Збереження даних у різних форматах"""
-        os.makedirs(output_dir, exist_ok=True)
-        
-        # Збереження в JSON
-        with open(f"{output_dir}/migrations.json", 'w', encoding='utf-8') as f:
-            json.dump(migrations, f, ensure_ascii=False, indent=2)
-        
-        # Збереження в CSV
-        df = pd.DataFrame(migrations)
-        df.to_csv(f"{output_dir}/migrations.csv", index=False, encoding='utf-8')
-        
-        # Збереження в Parquet (оптимізований формат для Big Data)
-        df.to_parquet(f"{output_dir}/migrations.parquet")
 
 def main():
     generator = BigDataGenerator()
-    print("Генерація даних...")
-    migrations = generator.generate_large_dataset(1000000)  # 1 млн записів
-    print(f"Згенеровано {len(migrations)} записів")
-    
-    print("Збереження даних...")
-    generator.save_to_files(migrations)
-    print("Готово!")
+    try:
+        # Запускаем потоковую отправку данных в Kafka
+        print("Запуск потоковой отправки данных...")
+        generator.stream_to_kafka(records_per_second=5, total_records=100)
+    finally:
+        generator.close()
 
 if __name__ == "__main__":
     main() 

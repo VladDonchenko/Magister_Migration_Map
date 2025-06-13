@@ -1,0 +1,150 @@
+@startuml
+skinparam sequence {
+  ArrowColor DarkBlue
+  ActorBorderColor DarkBlue
+  LifeLineBorderColor DarkBlue
+  ParticipantBorderColor DarkBlue
+  ParticipantBackgroundColor White
+}
+
+' Стиль для нереалізованих учасників
+skinparam participant {
+  BackgroundColor<<NotImplemented>> LightGray
+  BorderColor<<NotImplemented>> DarkGray
+}
+
+actor "Користувач" as User
+participant "Frontend" as FE
+participant "API Gateway" as AG
+participant "Business Logic" as BL
+participant "Flink Processor" as FP
+participant "Kafka" as KAFKA
+participant "Neo4j" as DB
+participant "External Source" as ES
+participant "File Handler" as FH <<NotImplemented>>
+participant "File Processor" as FPROC <<NotImplemented>>
+
+' Сценарій отримання міграційних даних
+User -> FE: Запит на дані міграції
+activate FE
+
+FE -> AG: HTTP/GraphQL запит
+activate AG
+
+AG -> BL: Обробка запиту
+activate BL
+
+BL -> FP: Запит на обробку даних
+activate FP
+
+FP -> KAFKA: Підписка на топик
+activate KAFKA
+
+ES -> KAFKA: Надсилання даних
+KAFKA -> FP: Отримання даних
+deactivate KAFKA
+
+FP -> DB: Запит на історичні дані
+activate DB
+
+DB --> FP: Відповідь з даними
+deactivate DB
+
+FP -> FP: Обробка та агрегація даних
+FP --> BL: Оброблені дані
+deactivate FP
+
+BL -> DB: Збереження результатів
+activate DB
+
+DB --> BL: Підтвердження збереження
+deactivate DB
+
+BL --> AG: Відповідь з даними
+deactivate BL
+
+AG --> FE: Відповідь API
+deactivate AG
+
+FE -> FE: Обробка та форматування даних
+FE --> User: Відображення на карті
+deactivate FE
+
+' Сценарій експорту даних (не реалізовано)
+User -> FE: Запит на експорт даних
+activate FE
+
+FE -> FH: Запит на експорт
+activate FH
+
+FH -> AG: Запит на дані
+activate AG
+
+AG -> BL: Обробка запиту
+activate BL
+
+BL -> DB: Отримання даних
+activate DB
+
+DB --> BL: Відповідь з даними
+deactivate DB
+
+BL --> AG: Відповідь з даними
+deactivate BL
+
+AG --> FH: Відповідь API
+deactivate AG
+
+FH -> FH: Форматування в Excel
+FH --> FE: Excel файл
+deactivate FH
+
+FE --> User: Завантаження файлу
+deactivate FE
+
+' Сценарій імпорту даних (не реалізовано)
+User -> FE: Завантаження Excel файлу
+activate FE
+
+FE -> FH: Передача файлу
+activate FH
+
+FH -> FPROC: Обробка файлу
+activate FPROC
+
+FPROC -> FPROC: Валідація даних
+FPROC -> FPROC: Парсинг Excel
+FPROC --> BL: Оброблені дані
+deactivate FPROC
+
+BL -> DB: Збереження даних
+activate DB
+
+DB --> BL: Підтвердження збереження
+deactivate DB
+
+BL --> FH: Підтвердження імпорту
+deactivate BL
+
+FH --> FE: Результат імпорту
+deactivate FH
+
+FE --> User: Сповіщення про успіх
+deactivate FE
+
+note right of User
+  Користувач взаємодіє з системою
+  через веб-інтерфейс
+end note
+
+note right of ES
+  Зовнішнє джерело даних
+  надсилає інформацію про
+  міграцію в реальному часі
+end note
+
+note right
+  Сценарії експорту та імпорту
+  даних ще не реалізовані
+end note
+@enduml 

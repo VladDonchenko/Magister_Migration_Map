@@ -4,7 +4,7 @@ from neo4j import GraphDatabase
 def check_data():
     uri = "bolt://localhost:7687"
     user = "neo4j"
-    password = "password"
+    password = "test"
     
     driver = GraphDatabase.driver(uri, auth=(user, password))
     

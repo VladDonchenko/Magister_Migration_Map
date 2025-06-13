@@ -1,0 +1,113 @@
+@startuml
+skinparam object {
+  BackgroundColor White
+  BorderColor DarkBlue
+  FontColor DarkBlue
+}
+
+object "AnalysisManager" as analysisManager {
+  dataSource: DataSource
+  metrics: Metric[]
+  reports: Report[]
+  visualizations: Visualization[]
+}
+
+object "DataSource" as dataSource {
+  neo4jClient: Neo4jClient
+  cache: Cache
+  queryBuilder: QueryBuilder
+}
+
+object "Metric" as metric {
+  name: String
+  type: MetricType
+  calculation: Function
+  parameters: Parameter[]
+}
+
+object "Report" as report {
+  title: String
+  metrics: Metric[]
+  period: TimeRange
+  format: ReportFormat
+  template: Template
+}
+
+object "Visualization" as visualization {
+  type: VisualizationType
+  data: DataSet
+  options: VisualizationOptions
+  renderer: Renderer
+}
+
+object "QueryBuilder" as queryBuilder {
+  baseQuery: String
+  filters: Filter[]
+  aggregations: Aggregation[]
+  parameters: Parameter[]
+}
+
+object "Cache" as cache {
+  data: Map<String, DataSet>
+  ttl: Duration
+  strategy: CacheStrategy
+}
+
+object "Renderer" as renderer {
+  type: RendererType
+  options: RenderOptions
+  theme: Theme
+}
+
+object "DataSet" as dataSet {
+  columns: Column[]
+  rows: Row[]
+  metadata: Metadata
+}
+
+object "Column" as column {
+  name: String
+  type: DataType
+  format: Format
+}
+
+object "Row" as row {
+  values: Map<String, any>
+  metadata: RowMetadata
+}
+
+analysisManager "1" *-- "1" dataSource
+analysisManager "1" *-- "many" metric
+analysisManager "1" *-- "many" report
+analysisManager "1" *-- "many" visualization
+
+dataSource "1" *-- "1" neo4jClient
+dataSource "1" *-- "1" cache
+dataSource "1" *-- "1" queryBuilder
+
+report "1" *-- "many" metric
+report "1" *-- "1" template
+
+visualization "1" *-- "1" dataSet
+visualization "1" *-- "1" renderer
+
+dataSet "1" *-- "many" column
+dataSet "1" *-- "many" row
+
+note right of analysisManager
+  Основний компонент аналізу,
+  який керує всіма процесами
+  обробки та візуалізації даних
+end note
+
+note right of dataSource
+  Джерело даних, яке забезпечує
+  доступ до Neo4j та кешування
+end note
+
+note right of visualization
+  Компонент візуалізації,
+  який відповідає за відображення
+  результатів аналізу
+end note
+@enduml 

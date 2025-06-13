@@ -1,199 +1,151 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Paper, ToggleButtonGroup, ToggleButton } from '@mui/material';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
+import React, { useEffect, useState } from 'react';
+import { Box, Container, Typography, CircularProgress } from '@mui/material';
+import migrationApi from '../utils/api/index';
 
-// Исправление проблемы с иконками маркеров в Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-interface City {
-  name: string;
-  region: string;
-  latitude: number;
-  longitude: number;
-  population: number;
+interface MapData {
+  nodes: Array<{
+    id: string;
+    name: string;
+    lat: number;
+    lon: number;
+  }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    weight: number;
+  }>;
 }
 
-interface MigrationFlow {
-  fromCity: string;
-  toCity: string;
-  count: number;
-  avg_age: number;
-  reasons: string[];
-  distance: number;
-}
+// Координати міст
+const cityCoordinates: { [key: string]: { lat: number; lon: number } } = {
+  'Київ': { lat: 50.45466, lon: 30.5238 },
+  'Харків': { lat: 49.98081, lon: 36.25272 },
+  'Одеса': { lat: 46.47747, lon: 30.73262 },
+  'Дніпро': { lat: 48.46664, lon: 35.04066 },
+  'Львів': { lat: 49.83826, lon: 24.02324 },
+  'Запоріжжя': { lat: 47.82289, lon: 35.19031 },
+  'Кривий Ріг': { lat: 47.90966, lon: 33.38044 },
+  'Миколаїв': { lat: 46.96591, lon: 31.9974 },
+  'Маріуполь': { lat: 47.09514, lon: 37.54131 },
+  'Вінниця': { lat: 49.23278, lon: 28.48097 }
+};
 
-interface MigrationMapProps {
-  cities: City[];
-}
+const MigrationMap: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [mapData, setMapData] = useState<MapData | null>(null);
 
-const MigrationMap: React.FC<MigrationMapProps> = ({ cities }) => {
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
-  const [visualizationType, setVisualizationType] = useState<'cities' | 'flows'>('cities');
-  const [migrationFlows, setMigrationFlows] = useState<MigrationFlow[]>([]);
-
-  // Загрузка потоков миграции
   useEffect(() => {
-    const fetchMigrationFlows = async () => {
+    const fetchMapData = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/migration/flows');
-        if (!response.ok) {
-          throw new Error('Помилка завантаження потоків міграції');
+        console.log('Починаємо завантаження даних...');
+        const response = await migrationApi.getMapData();
+        console.log('API Response:', response);
+
+        if (!response) {
+          console.error('Response is null or undefined');
+          setError('Некоректні дані від сервера');
+          return;
         }
-        const data = await response.json();
-        setMigrationFlows(data);
-      } catch (error) {
-        console.error('Помилка:', error);
+
+        if (!response.edges) {
+          console.error('Response.edges is null or undefined');
+          setError('Некоректні дані від сервера');
+          return;
+        }
+
+        console.log('Edges data:', response.edges);
+
+        // Отримуємо унікальні міста з edges
+        const uniqueCities = new Set<string>();
+        response.edges.forEach((edge: any) => {
+          console.log('Processing edge:', edge);
+          if (edge.source) uniqueCities.add(edge.source);
+          if (edge.target) uniqueCities.add(edge.target);
+        });
+
+        console.log('Unique cities:', Array.from(uniqueCities));
+
+        // Створюємо nodes на основі унікальних міст
+        const nodes = Array.from(uniqueCities).map(cityName => {
+          console.log('Processing city:', cityName);
+          const coords = cityCoordinates[cityName];
+          console.log('City coordinates:', coords);
+          return {
+            id: cityName,
+            name: cityName,
+            lat: coords?.lat || 0,
+            lon: coords?.lon || 0
+          };
+        });
+
+        console.log('Created nodes:', nodes);
+
+        // Перетворюємо дані у потрібний формат
+        const transformedData: MapData = {
+          nodes,
+          edges: response.edges.map((edge: any) => ({
+            source: edge.source || '',
+            target: edge.target || '',
+            weight: edge.weight || 1
+          })).filter((edge: any) => edge.source && edge.target)
+        };
+
+        console.log('Transformed data:', transformedData);
+        setMapData(transformedData);
+        setError(null);
+      } catch (err) {
+        console.error('Error details:', err);
+        setError('Помилка при завантаженні даних карти');
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchMigrationFlows();
+    fetchMapData();
   }, []);
 
-  // Центр карты - Украина
-  const center: [number, number] = [48.3794, 31.1656];
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  // Обработчик изменения типа визуализации
-  const handleVisualizationChange = (
-    event: React.MouseEvent<HTMLElement>,
-    newVisualization: 'cities' | 'flows' | null,
-  ) => {
-    if (newVisualization !== null) {
-      setVisualizationType(newVisualization);
-    }
-  };
+  if (error) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
 
-  // Получение цвета маркера в зависимости от населения
-  const getMarkerColor = (population: number): string => {
-    if (population > 1000000) return '#ff0000'; // Красный для больших городов
-    if (population > 500000) return '#ff7f00'; // Оранжевый для средних городов
-    if (population > 100000) return '#ffff00'; // Желтый для малых городов
-    return '#00ff00'; // Зеленый для очень малых городов
-  };
-
-  // Получение размера маркера в зависимости от населения
-  const getMarkerSize = (population: number): number => {
-    return Math.log10(population) * 5;
-  };
-
-  // Получение цвета линии в зависимости от количества мигрантов
-  const getFlowColor = (count: number): string => {
-    if (count > 1000) return '#ff0000';
-    if (count > 500) return '#ff7f00';
-    if (count > 100) return '#ffff00';
-    return '#00ff00';
-  };
-
-  // Получение толщины линии в зависимости от количества мигрантов
-  const getFlowWeight = (count: number): number => {
-    return Math.log10(count) * 2;
-  };
-
-  // Получение координат города по его имени
-  const getCityCoordinates = (cityName: string): [number, number] | null => {
-    const city = cities.find(c => c.name === cityName);
-    return city ? [city.latitude, city.longitude] : null;
-  };
+  if (!mapData) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <Typography color="error">Немає даних для відображення</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5">
+    <Container maxWidth="lg">
+      <Box sx={{ mt: 4 }}>
+        <Typography variant="h4" gutterBottom>
           Карта міграції
         </Typography>
-        <ToggleButtonGroup
-          value={visualizationType}
-          exclusive
-          onChange={handleVisualizationChange}
-          aria-label="тип візуалізації"
-        >
-          <ToggleButton value="cities" aria-label="міста">
-            Міста
-          </ToggleButton>
-          <ToggleButton value="flows" aria-label="потоки">
-            Потоки
-          </ToggleButton>
-        </ToggleButtonGroup>
+        <Typography variant="body1">
+          Візуалізація карти в розробці. Дані успішно завантажено.
+        </Typography>
+        <Typography variant="body2" color="textSecondary">
+          Кількість міст: {mapData.nodes.length}
+          <br />
+          Кількість зв'язків: {mapData.edges.length}
+        </Typography>
       </Box>
-      
-      <Paper sx={{ height: '600px', overflow: 'hidden' }}>
-        <MapContainer 
-          center={center} 
-          zoom={6} 
-          style={{ height: '100%', width: '100%' }}
-        >
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-          
-          {cities.map((city) => (
-            <Marker
-              key={city.name}
-              position={[city.latitude, city.longitude]}
-              eventHandlers={{
-                click: () => setSelectedCity(city.name),
-              }}
-              icon={L.divIcon({
-                className: 'custom-marker',
-                html: `<div style="
-                  background-color: ${getMarkerColor(city.population)};
-                  width: ${getMarkerSize(city.population)}px;
-                  height: ${getMarkerSize(city.population)}px;
-                  border-radius: 50%;
-                  border: 2px solid white;
-                  box-shadow: 0 0 10px rgba(0,0,0,0.5);
-                "></div>`,
-                iconSize: [getMarkerSize(city.population), getMarkerSize(city.population)],
-                iconAnchor: [getMarkerSize(city.population) / 2, getMarkerSize(city.population) / 2],
-              })}
-            >
-              <Popup>
-                <Typography variant="h6">{city.name}</Typography>
-                <Typography>Регіон: {city.region}</Typography>
-                <Typography>Населення: {city.population.toLocaleString()}</Typography>
-              </Popup>
-            </Marker>
-          ))}
-          
-          {visualizationType === 'flows' && migrationFlows.map((flow, index) => {
-            const fromCoords = getCityCoordinates(flow.fromCity);
-            const toCoords = getCityCoordinates(flow.toCity);
-            
-            if (!fromCoords || !toCoords) return null;
-            
-            return (
-              <Polyline
-                key={`${flow.fromCity}-${flow.toCity}-${index}`}
-                positions={[fromCoords, toCoords]}
-                pathOptions={{
-                  color: getFlowColor(flow.count),
-                  weight: getFlowWeight(flow.count),
-                  opacity: 0.6
-                }}
-              >
-                <Popup>
-                  <Typography variant="h6">Міграційний потік</Typography>
-                  <Typography>З: {flow.fromCity}</Typography>
-                  <Typography>До: {flow.toCity}</Typography>
-                  <Typography>Кількість: {flow.count}</Typography>
-                  <Typography>Середній вік: {flow.avg_age ? flow.avg_age.toFixed(1) : 'Н/Д'}</Typography>
-                  <Typography>Середня відстань: {flow.distance.toFixed(1)} км</Typography>
-                  <Typography>Причини: {flow.reasons ? flow.reasons.join(', ') : 'Н/Д'}</Typography>
-                </Popup>
-              </Polyline>
-            );
-          })}
-        </MapContainer>
-      </Paper>
-    </Box>
+    </Container>
   );
 };
 
-export default MigrationMap; 
+export default MigrationMap;

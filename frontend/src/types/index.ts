@@ -1,15 +1,37 @@
 export interface City {
-    id: string;
     name: string;
     latitude: number;
     longitude: number;
+    country?: string;
+    region?: string;
+    population: number;
+    incomingMigrations: number;
+    outgoingMigrations: number;
+}
+
+export interface Migrant {
+    firstName: string;
+    lastName: string;
+    age?: number;
+    gender?: string;
+    profession?: string;
+    education?: string;
+    familyStatus?: string;
+    reason?: string;
+    transportType?: string;
+    housingType?: string;
 }
 
 export interface MigrationFlow {
-    fromCity: string;
-    toCity: string;
+    fromCity: City;
+    toCity: City;
     count: number;
-    distance: number;
+    migrants: Migrant[];
+}
+
+export interface MigrationMapResponse {
+    cities: City[];
+    migrations: MigrationFlow[];
 }
 
 export interface MigrationStats {
