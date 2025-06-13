@@ -90,21 +90,46 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ height: '100vh', position: 'relative' }}>
+    <Box sx={{ 
+      height: 'calc(100vh - 64px)', // Віднімаємо висоту навігації
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
       <Grid container spacing={2} sx={{ height: '100%' }}>
-        <Grid item xs={12} md={9} sx={{ height: '100%' }}>
+        <Grid item xs={12} sx={{ 
+          height: '100%',
+          position: 'relative',
+          zIndex: 1
+        }}>
           <Map
             cities={cities}
             migrations={migrations}
             onCityClick={handleCityClick}
           />
         </Grid>
-        <Grid item xs={12} md={3} sx={{ position: 'relative' }}>
-          <Box sx={{ position: 'absolute', top: 0, left: 0, zIndex: 1000, backgroundColor: 'white', padding: 2, boxShadow: 3 }}>
-            <CityDetails city={selectedCity} />
-          </Box>
-        </Grid>
       </Grid>
+      
+      {selectedCity && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 9999,
+            backgroundColor: 'white',
+            padding: 3,
+            borderRadius: 2,
+            boxShadow: '0 0 20px rgba(0,0,0,0.2)',
+            width: '90%',
+            maxWidth: '400px',
+            maxHeight: '80vh',
+            overflow: 'auto'
+          }}
+        >
+          <CityDetails city={selectedCity} />
+        </Box>
+      )}
     </Box>
   );
 };

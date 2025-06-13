@@ -1,10 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
+import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
 import Navigation from './components/Navigation';
 import UploadData from './components/UploadData';
 import Analytics from './components/Analytics';
-import MigrationMap from './components/MigrationMap';
 import HomePage from './pages/HomePage';
 
 const theme = createTheme({
@@ -23,14 +22,18 @@ const App: React.FC = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Navigation />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/map" element={<HomePage />} />
-          <Route path="/upload" element={<UploadData />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/export" element={<div>Export Page</div>} />
-        </Routes>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Navigation />
+          <Box component="main" sx={{ flexGrow: 1, position: 'relative' }}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/map" element={<HomePage />} />
+              <Route path="/upload" element={<UploadData />} />
+              <Route path="/analytics" element={<Analytics />} />
+              <Route path="/export" element={<div>Export Page</div>} />
+            </Routes>
+          </Box>
+        </Box>
       </Router>
     </ThemeProvider>
   );

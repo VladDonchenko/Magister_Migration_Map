@@ -10,7 +10,7 @@ export interface MigrationApi {
   getMigrants: (fromCity: string, toCity: string) => Promise<any>;
 }
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://localhost';
 
 const migrationApi: MigrationApi = {
   getMapData: async () => {

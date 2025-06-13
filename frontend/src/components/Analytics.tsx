@@ -8,6 +8,8 @@ interface AnalyticsData {
   stats: {
     total_migrations: number;
     average_age: number;
+    most_common_reason: string;
+    most_common_transport: string;
     male_percentage: number;
     female_percentage: number;
   };
@@ -38,6 +40,8 @@ const defaultData: AnalyticsData = {
   stats: {
     total_migrations: 0,
     average_age: 0,
+    most_common_reason: '',
+    most_common_transport: '',
     male_percentage: 0,
     female_percentage: 0
   },
@@ -49,72 +53,66 @@ const defaultData: AnalyticsData = {
 };
 
 const Analytics: React.FC = () => {
-  const [data, setData] = useState<AnalyticsData>(defaultData);
+  const [data, setData] = useState<AnalyticsData>({
+    stats: {
+      total_migrations: 0,
+      average_age: 0,
+      most_common_reason: '',
+      most_common_transport: '',
+      male_percentage: 0,
+      female_percentage: 0
+    },
+    reasons: [],
+    top_from_cities: [],
+    top_to_cities: [],
+    age_stats: {},
+    gender_stats: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [clearing, setClearing] = useState(false);
 
+  useEffect(() => {
+    console.log('Current data state:', data);
+    console.log('Stats:', data.stats);
+    console.log('Top from cities:', data.top_from_cities);
+    console.log('Top to cities:', data.top_to_cities);
+    console.log('Reasons:', data.reasons);
+  }, [data]);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       const response = await migrationApi.getAnalytics();
-      console.log('API Response:', response);
+      console.log('Raw API Response:', response);
       
-      const stats = response?.stats || {};
-      const safeStats = {
-        total_migrations: Number(stats.total_migrations) || 0,
-        average_age: Number(stats.average_age) || 0,
-        male_percentage: Number(stats.male_percentage) || 0,
-        female_percentage: Number(stats.female_percentage) || 0
+      const stats = {
+        total_migrations: response?.total_stats?.total_migrations || 0,
+        average_age: response?.total_stats?.average_age || 0,
+        most_common_reason: response?.total_stats?.most_common_reason || 'Немає даних',
+        most_common_transport: response?.total_stats?.most_common_transport || 'Немає даних',
+        male_percentage: response?.total_stats?.male_percentage || 0,
+        female_percentage: response?.total_stats?.female_percentage || 0
       };
-
-      const safeReasons = Array.isArray(response?.reasons) 
-        ? response.reasons.map((item: { reason?: string; count?: number }) => ({
-            reason: String(item.reason || ''),
-            count: Number(item.count) || 0
-          }))
-        : [];
-
-      const safeGenderStats = Array.isArray(response?.gender_stats)
-        ? response.gender_stats.map((item: { gender?: string; count?: number }) => ({
-            gender: String(item.gender || ''),
-            count: Number(item.count) || 0
-          }))
-        : [];
-
-      const safeTopFromCities = Array.isArray(response?.top_from_cities)
-        ? response.top_from_cities.map((item: { city?: string; count?: number }) => ({
-            city: String(item.city || ''),
-            count: Number(item.count) || 0
-          }))
-        : [];
-
-      const safeTopToCities = Array.isArray(response?.top_to_cities)
-        ? response.top_to_cities.map((item: { city?: string; count?: number }) => ({
-            city: String(item.city || ''),
-            count: Number(item.count) || 0
-          }))
-        : [];
-
-      const safeAgeStats = response?.age_stats || {};
-      const processedAgeStats: { [key: string]: number } = {};
-      Object.entries(safeAgeStats).forEach(([key, value]) => {
-        processedAgeStats[key] = Number(value) || 0;
-      });
-
-      setData({
-        stats: safeStats,
-        reasons: safeReasons,
-        age_stats: processedAgeStats,
-        gender_stats: safeGenderStats,
-        top_from_cities: safeTopFromCities,
-        top_to_cities: safeTopToCities
-      });
+      console.log('Processed stats:', stats);
+      
+      const newData = {
+        stats,
+        reasons: response?.migration_reasons || [],
+        top_from_cities: response?.top_outgoing_cities || [],
+        top_to_cities: response?.top_incoming_cities || [],
+        age_stats: response?.age_stats || {},
+        gender_stats: response?.gender_stats || []
+      };
+      console.log('New data to be set:', newData);
+      
+      setData(newData);
+      console.log('Data set to state');
       setError(null);
     } catch (err) {
-      setError('Помилка при завантаженні даних');
       console.error('Error fetching analytics:', err);
+      setError('Помилка при отриманні даних');
     } finally {
       setLoading(false);
     }
@@ -123,6 +121,15 @@ const Analytics: React.FC = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    console.log('Data for charts:', {
+      topFromCities: data.top_from_cities,
+      topToCities: data.top_to_cities,
+      reasons: data.reasons,
+      stats: data.stats
+    });
+  }, [data]);
 
   const handleGenerateData = async (numMigrations: number) => {
     try {
@@ -180,7 +187,9 @@ const Analytics: React.FC = () => {
 
   return (
     <div className="analytics-container">
-      <h1>Аналітика міграції</h1>
+      <Typography variant="h4" gutterBottom>
+        Аналітика міграції 1
+      </Typography>
       <Box mb={3}>
         <ButtonGroup variant="contained" aria-label="data management buttons">
           <Button onClick={() => handleGenerateData(100)} disabled={generating}>
@@ -202,145 +211,134 @@ const Analytics: React.FC = () => {
       </Box>
       <FileUpload />
       <Box p={3}>
-        <Paper elevation={3} sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h4" gutterBottom>
-            Загальна статистика
-          </Typography>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6">Всього міграцій</Typography>
-                <Typography variant="h4">{data.stats.total_migrations}</Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6">Середній вік</Typography>
-                <Typography variant="h4">{formatNumber(data.stats.average_age)}</Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6">Чоловіки</Typography>
-                <Typography variant="h4">{formatNumber(data.stats.male_percentage)}%</Typography>
-              </Paper>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6">Жінки</Typography>
-                <Typography variant="h4">{formatNumber(data.stats.female_percentage)}%</Typography>
-              </Paper>
-            </Grid>
-          </Grid>
-        </Paper>
-
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h5" gutterBottom>
-                Розподіл за віком
-              </Typography>
-              <Box height={300}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={ageData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="age" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <>
+                <Typography variant="h5" gutterBottom>
+                  Загальна статистика
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography variant="h6" color="primary">
+                        {data.stats.total_migrations}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Всього міграцій
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography variant="h6" color="primary">
+                        {data.stats.average_age.toFixed(1)}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Середній вік
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography variant="h6" color="primary">
+                        {data.stats.most_common_reason}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Найпоширеніша причина
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={3}>
+                    <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
+                      <Typography variant="h6" color="primary">
+                        {data.stats.most_common_transport}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Найпоширеніший транспорт
+                      </Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </>
             </Paper>
           </Grid>
 
           <Grid item xs={12} md={6}>
             <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h5" gutterBottom>
-                Розподіл за статтю
-              </Typography>
-              <Box height={300}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={data.gender_stats}
-                      dataKey="count"
-                      nameKey="gender"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label
-                    >
-                      {data.gender_stats.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Box>
+              <>
+                <Typography variant="h5" gutterBottom>
+                  Топ-5 міст відправлення
+                </Typography>
+                {data.top_from_cities && data.top_from_cities.length > 0 ? (
+                  <Box height={300}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.top_from_cities}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="city" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="outgoing_count" fill="#82ca9d" name="Кількість виїздів" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                ) : (
+                  <Typography>Немає даних</Typography>
+                )}
+              </>
             </Paper>
           </Grid>
 
           <Grid item xs={12} md={6}>
             <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h5" gutterBottom>
-                Топ-5 міст відправлення
-              </Typography>
-              <Box height={300}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.top_from_cities}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="city" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
-            </Paper>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
-              <Typography variant="h5" gutterBottom>
-                Топ-5 міст призначення
-              </Typography>
-              <Box height={300}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.top_to_cities}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="city" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" fill="#ffc658" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+              <>
+                <Typography variant="h5" gutterBottom>
+                  Топ-5 міст призначення
+                </Typography>
+                {data.top_to_cities && data.top_to_cities.length > 0 ? (
+                  <Box height={300}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.top_to_cities}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="city" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="incoming_count" fill="#ffc658" name="Кількість приїздів" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                ) : (
+                  <Typography>Немає даних</Typography>
+                )}
+              </>
             </Paper>
           </Grid>
 
           <Grid item xs={12}>
             <Paper elevation={3} sx={{ p: 3 }}>
-              <Typography variant="h5" gutterBottom>
-                Причини міграції
-              </Typography>
-              <Box height={300}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.reasons}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="reason" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="count" fill="#ff7300" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Box>
+              <>
+                <Typography variant="h5" gutterBottom>
+                  Причини міграції
+                </Typography>
+                {data.reasons && data.reasons.length > 0 ? (
+                  <Box height={300}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={data.reasons}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="reason" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="count" fill="#ff7300" name="Кількість мігрантів" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </Box>
+                ) : (
+                  <Typography>Немає даних</Typography>
+                )}
+              </>
             </Paper>
           </Grid>
         </Grid>

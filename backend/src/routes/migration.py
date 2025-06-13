@@ -116,6 +116,96 @@ async def get_migration_map(neo4j_service: Neo4jService = Depends(get_neo4j_serv
         logger.error(f"Помилка при отриманні даних карти: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/analytics")
+async def get_analytics(neo4j_service: Neo4jService = Depends(get_neo4j_service)):
+    try:
+        logger.info("Отримуємо дані для аналітики")
+        
+        # Перевіряємо загальну кількість міграцій
+        total_count = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            RETURN count(r) as total
+        """)
+        logger.info(f"Загальна кількість міграцій: {total_count}")
+        
+        # Перевіряємо кількість міст
+        cities_count = neo4j_service.execute_query("""
+            MATCH (c:City)
+            RETURN count(c) as total
+        """)
+        logger.info(f"Кількість міст: {cities_count}")
+        
+        # Перевіряємо кількість людей
+        people_count = neo4j_service.execute_query("""
+            MATCH (p:Person)
+            RETURN count(p) as total
+        """)
+        logger.info(f"Кількість людей: {people_count}")
+        
+        # Загальна статистика
+        total_stats = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            RETURN {
+                total_migrations: count(r),
+                unique_migrants: count(distinct p),
+                average_age: avg(p.age),
+                most_common_reason: head(collect(distinct r.reason)),
+                most_common_transport: head(collect(distinct r.transport_type))
+            } as stats
+        """)
+        logger.info(f"Загальна статистика: {total_stats}")
+        
+        # Топ міст за кількістю виїздів
+        top_outgoing = neo4j_service.execute_query("""
+            MATCH (c:City)<-[r:MIGRATES_FROM]-(p:Person)
+            WITH c, count(r) as outgoing_count
+            RETURN c.name as city, outgoing_count
+            ORDER BY outgoing_count DESC
+            LIMIT 5
+        """)
+        logger.info(f"Топ міст за виїздами: {top_outgoing}")
+        
+        # Топ міст за кількістю приїздів
+        top_incoming = neo4j_service.execute_query("""
+            MATCH (c:City)<-[r:MIGRATES_TO]-(p:Person)
+            WITH c, count(r) as incoming_count
+            RETURN c.name as city, incoming_count
+            ORDER BY incoming_count DESC
+            LIMIT 5
+        """)
+        logger.info(f"Топ міст за приїздами: {top_incoming}")
+        
+        # Статистика за причинами міграції
+        migration_reasons = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            WITH r.reason as reason, count(*) as count
+            RETURN reason, count
+            ORDER BY count DESC
+        """)
+        logger.info(f"Причини міграції: {migration_reasons}")
+        
+        response = {
+            "total_stats": {
+                "total_migrations": total_stats[0]["stats"]["total_migrations"] if total_stats else 0,
+                "average_age": total_stats[0]["stats"]["average_age"] if total_stats else 0,
+                "most_common_reason": total_stats[0]["stats"]["most_common_reason"] if total_stats else "",
+                "most_common_transport": total_stats[0]["stats"]["most_common_transport"] if total_stats else "",
+                "male_percentage": 50,  # Заглушка, потрібно додати реальний розрахунок
+                "female_percentage": 50  # Заглушка, потрібно додати реальний розрахунок
+            },
+            "top_outgoing_cities": top_outgoing,
+            "top_incoming_cities": top_incoming,
+            "migration_reasons": migration_reasons,
+            "age_stats": {},  # Заглушка, потрібно додати реальний розрахунок
+            "gender_stats": []  # Заглушка, потрібно додати реальний розрахунок
+        }
+        logger.info(f"Відповідь від бекенду: {response}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Помилка при отриманні даних аналітики: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/migration/city/{city_name}/stats")
 async def get_city_stats(city_name: str):
     """

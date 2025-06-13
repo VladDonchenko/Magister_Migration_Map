@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet'
 import { LatLngTuple, Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { City, MigrationFlow } from '../types/index';
+import { Box } from '@mui/material';
 
 interface MapProps {
     cities: City[];
@@ -38,14 +39,16 @@ const Map: React.FC<MapProps> = ({ cities, migrations, onCityClick }) => {
     };
 
     return (
-        <div style={{ 
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
+        <Box sx={{ 
+            position: 'relative',
             width: '100%',
-            height: '100%'
+            height: '100%',
+            zIndex: 1,
+            '& .leaflet-container': {
+                width: '100%',
+                height: '100%',
+                zIndex: 1
+            }
         }}>
             <MapContainer
                 center={defaultCenter}
@@ -98,7 +101,7 @@ const Map: React.FC<MapProps> = ({ cities, migrations, onCityClick }) => {
                     </Polyline>
                 ))}
             </MapContainer>
-        </div>
+        </Box>
     );
 };
 

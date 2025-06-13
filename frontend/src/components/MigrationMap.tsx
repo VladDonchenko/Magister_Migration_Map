@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Container, Typography, CircularProgress } from '@mui/material';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { LatLngTuple, Icon } from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import migrationApi from '../utils/api/index';
 
 interface MapData {
@@ -129,16 +132,74 @@ const MigrationMap: React.FC = () => {
     );
   }
 
+  const defaultCenter: LatLngTuple = [48.3794, 31.1656]; // Центр України
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ mt: 4 }}>
         <Typography variant="h4" gutterBottom>
           Карта міграції
         </Typography>
-        <Typography variant="body1">
-          Візуалізація карти в розробці. Дані успішно завантажено.
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
+        <Box sx={{ 
+          width: '100%', 
+          height: '600px', 
+          mt: 2,
+          position: 'relative',
+          zIndex: 1000,
+          '& .leaflet-container': {
+            width: '100%',
+            height: '100%',
+            zIndex: 1
+          }
+        }}>
+          <MapContainer
+            center={defaultCenter}
+            zoom={6}
+            style={{ width: '100%', height: '100%' }}
+            zoomControl={false}
+          >
+            <TileLayer
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            />
+            {mapData.nodes.map((node) => (
+              <Marker
+                key={node.id}
+                position={[node.lat, node.lon]}
+              >
+                <Popup>
+                  <strong>{node.name}</strong>
+                </Popup>
+              </Marker>
+            ))}
+            {mapData.edges.map((edge, index) => {
+              const sourceNode = mapData.nodes.find(n => n.id === edge.source);
+              const targetNode = mapData.nodes.find(n => n.id === edge.target);
+              if (!sourceNode || !targetNode) return null;
+              return (
+                <Polyline
+                  key={`line-${index}`}
+                  positions={[
+                    [sourceNode.lat, sourceNode.lon],
+                    [targetNode.lat, targetNode.lon]
+                  ]}
+                  color="red"
+                  weight={edge.weight}
+                  opacity={0.6}
+                >
+                  <Popup>
+                    <strong>Міграційний потік</strong>
+                    <br />
+                    {`${sourceNode.name} → ${targetNode.name}`}
+                    <br />
+                    Кількість мігрантів: {edge.weight}
+                  </Popup>
+                </Polyline>
+              );
+            })}
+          </MapContainer>
+        </Box>
+        <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
           Кількість міст: {mapData.nodes.length}
           <br />
           Кількість зв'язків: {mapData.edges.length}

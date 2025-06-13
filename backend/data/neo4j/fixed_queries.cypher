@@ -1,0 +1,1 @@
+MERGE (c1:City {name: "Київ",latitude: 50.4501,longitude: 30.5234,population: 2967000,is_region_center: true}) RETURN c1; MERGE (c2:City {name: "Харків",latitude: 49.9935,longitude: 36.2304,population: 1441000,is_region_center: true}) RETURN c2; MERGE (c3:City {name: "Одеса",latitude: 46.4825,longitude: 30.7233,population: 1015000,is_region_center: true}) RETURN c3;
