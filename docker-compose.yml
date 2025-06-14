@@ -16,8 +16,8 @@ services:
     build:
       context: ./frontend
     image: migratio_map_frontend
-    ports:
-      - "3000:80"
+    expose:
+      - "80"
     depends_on:
       - backend
     restart: unless-stopped

@@ -42,7 +42,6 @@ async def get_city_stats(city_name: str):
     """Отримати статистику міграції для конкретного міста"""
     logger.info(f"Отримання статистики для міста: {city_name}")
     try:
-        # Отримуємо статистику міста
         stats = get_neo4j_service().get_city_stats(city_name)
         logger.info(f"Отримано статистику для міста {city_name}: {stats}")
         
@@ -96,4 +95,24 @@ async def get_city_debug(
         
     except Exception as e:
         logger.error(f"Помилка при отриманні debug інформації міста: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{city_name}/migrations")
+async def get_city_migrations(city_name: str):
+    try:
+        migrations = get_neo4j_service().get_city_migrations(city_name)
+        if not migrations:
+            raise HTTPException(status_code=404, detail="City not found")
+        return migrations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{city_name}/migrants")
+async def get_city_migrants(city_name: str):
+    """Отримати інформацію про мігрантів для конкретного міста"""
+    logger.info(f"Отримання інформації про мігрантів для міста: {city_name}")
+    try:
+        return get_neo4j_service().get_city_migrants(city_name)
+    except Exception as e:
+        logger.error(f"Помилка при отриманні інформації про мігрантів: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e)) 

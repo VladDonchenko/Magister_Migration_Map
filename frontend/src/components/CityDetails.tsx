@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, CircularProgress, Alert, Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { City, CityStats } from '../types';
 import migrationApi from '../utils/api/index';
 
@@ -8,6 +9,7 @@ interface CityDetailsProps {
 }
 
 const CityDetails: React.FC<CityDetailsProps> = ({ city }) => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<CityStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +91,14 @@ const CityDetails: React.FC<CityDetailsProps> = ({ city }) => {
           <Typography>
             <strong>Середня відстань:</strong> {stats.averageDistance.toFixed(2)} км
           </Typography>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={() => navigate(`/city/${city.name}`)}
+            style={{ marginTop: '16px' }}
+          >
+            Детальніше
+          </Button>
         </Box>
       )}
     </Box>

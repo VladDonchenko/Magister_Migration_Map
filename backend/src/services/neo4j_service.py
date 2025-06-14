@@ -402,3 +402,79 @@ class Neo4jService:
         except Exception as e:
             logger.error(f"Помилка отримання інформації про місто: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
+
+    def get_city_migrations(self, city_name: str) -> Dict:
+        """Отримання інформації про міграції для конкретного міста"""
+        try:
+            # Отримуємо вхідні міграції
+            incoming_query = """
+            MATCH (from:City)<-[:MIGRATES_FROM]-(p:Person)-[:MIGRATES_TO]->(to:City {name: $city_name})
+            RETURN from.name as source, count(*) as weight
+            """
+            incoming = self.execute_query(incoming_query, {"city_name": city_name})
+
+            # Отримуємо вихідні міграції
+            outgoing_query = """
+            MATCH (from:City {name: $city_name})<-[:MIGRATES_FROM]-(p:Person)-[:MIGRATES_TO]->(to:City)
+            RETURN to.name as target, count(*) as weight
+            """
+            outgoing = self.execute_query(outgoing_query, {"city_name": city_name})
+
+            return {
+                "incoming": incoming,
+                "outgoing": outgoing
+            }
+        except Exception as e:
+            logger.error(f"Помилка отримання міграцій: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    def get_city_migrants(self, city_name: str) -> Dict:
+        """Отримання інформації про мігрантів для конкретного міста"""
+        try:
+            # Отримуємо вхідних мігрантів
+            incoming_query = """
+            MATCH (from:City)<-[r:MIGRATES_FROM]-(p:Person)-[:MIGRATES_TO]->(to:City {name: $city_name})
+            RETURN 
+                p.name as name,
+                p.age as age,
+                p.gender as gender,
+                p.education as education,
+                p.profession as profession,
+                p.family_status as family_status,
+                r.reason as reason,
+                r.transport_type as transport_type,
+                r.housing_type as housing_type,
+                r.date as date,
+                r.distance_km as distance_km,
+                from.name as from_city
+            ORDER BY r.date DESC
+            """
+            incoming = self.execute_query(incoming_query, {"city_name": city_name})
+
+            # Отримуємо вихідних мігрантів
+            outgoing_query = """
+            MATCH (from:City {name: $city_name})<-[r:MIGRATES_FROM]-(p:Person)-[:MIGRATES_TO]->(to:City)
+            RETURN 
+                p.name as name,
+                p.age as age,
+                p.gender as gender,
+                p.education as education,
+                p.profession as profession,
+                p.family_status as family_status,
+                r.reason as reason,
+                r.transport_type as transport_type,
+                r.housing_type as housing_type,
+                r.date as date,
+                r.distance_km as distance_km,
+                to.name as to_city
+            ORDER BY r.date DESC
+            """
+            outgoing = self.execute_query(outgoing_query, {"city_name": city_name})
+
+            return {
+                "incoming": incoming,
+                "outgoing": outgoing
+            }
+        except Exception as e:
+            logger.error(f"Помилка отримання інформації про мігрантів: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))

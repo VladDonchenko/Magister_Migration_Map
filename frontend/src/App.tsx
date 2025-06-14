@@ -5,6 +5,7 @@ import Navigation from './components/Navigation';
 import UploadData from './components/UploadData';
 import Analytics from './components/Analytics';
 import HomePage from './pages/HomePage';
+import CityPage from './pages/CityPage';
 
 const theme = createTheme({
   palette: {
@@ -31,6 +32,7 @@ const App: React.FC = () => {
               <Route path="/upload" element={<UploadData />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/export" element={<div>Export Page</div>} />
+              <Route path="/city/:cityName" element={<CityPage />} />
             </Routes>
           </Box>
         </Box>

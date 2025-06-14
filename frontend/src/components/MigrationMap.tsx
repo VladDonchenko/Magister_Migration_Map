@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Box, Container, Typography, CircularProgress } from '@mui/material';
+import { Box, Container, Typography, CircularProgress, Button } from '@mui/material';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import { LatLngTuple, Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import migrationApi from '../utils/api/index';
+import { useNavigate } from 'react-router-dom';
 
 interface CityNode {
   id: string;
@@ -11,6 +12,8 @@ interface CityNode {
   lat: number;
   lon: number;
   population?: number;
+  incoming_migrations?: number;
+  outgoing_migrations?: number;
 }
 
 interface MigrationEdge {
@@ -69,9 +72,10 @@ const cityCoordinates: { [key: string]: { lat: number; lon: number } } = {
 const MigrationMap: React.FC = () => {
   const [nodes, setNodes] = useState<CityNode[]>([]);
   const [edges, setEdges] = useState<MigrationEdge[]>([]);
-  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [selectedCity, setSelectedCity] = useState<CityNode | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMapData = async () => {
@@ -145,25 +149,28 @@ const MigrationMap: React.FC = () => {
   }, []);
 
   const handleCityClick = (cityName: string) => {
-    if (selectedCity === cityName) {
+    if (selectedCity && selectedCity.id === cityName) {
       // Якщо клікнули на вже вибране місто - показуємо всі міграції
       setSelectedCity(null);
     } else {
-      setSelectedCity(cityName);
+      const city = nodes.find(node => node.id === cityName);
+      if (city) {
+        setSelectedCity(city);
+      }
     }
   };
 
   const filteredEdges = useMemo(() => {
     if (!selectedCity) return edges;
     return edges.filter(edge => 
-      edge.source === selectedCity || edge.target === selectedCity
+      edge.source === selectedCity.id || edge.target === selectedCity.id
     );
   }, [edges, selectedCity]);
 
   const filteredNodes = useMemo(() => {
     if (!selectedCity) return nodes;
     const cityNames = new Set([
-      selectedCity,
+      selectedCity.id,
       ...filteredEdges.map(edge => edge.source),
       ...filteredEdges.map(edge => edge.target)
     ]);
@@ -265,6 +272,31 @@ const MigrationMap: React.FC = () => {
           Кількість зв'язків: {edges.length}
         </Typography>
       </Box>
+      {selectedCity && (
+        <div style={{
+          position: 'absolute',
+          top: '20px',
+          right: '20px',
+          background: 'white',
+          padding: '20px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          maxWidth: '300px',
+          zIndex: 1000
+        }}>
+          <h3>{selectedCity.name}</h3>
+          <p>Населення: {selectedCity.population?.toLocaleString()}</p>
+          <p>Вхідні міграції: {selectedCity.incoming_migrations}</p>
+          <p>Вихідні міграції: {selectedCity.outgoing_migrations}</p>
+          <Button 
+            type="button"
+            onClick={() => navigate(`/city/${encodeURIComponent(selectedCity.name)}`)}
+            style={{ marginTop: '10px' }}
+          >
+            Детальніше
+          </Button>
+        </div>
+      )}
     </Container>
   );
 };
