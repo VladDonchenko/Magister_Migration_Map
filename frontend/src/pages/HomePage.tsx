@@ -113,9 +113,8 @@ const HomePage: React.FC = () => {
         <Box
           sx={{
             position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
+            top: '80px',
+            right: '20px',
             zIndex: 9999,
             backgroundColor: 'white',
             padding: 3,

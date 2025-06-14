@@ -1,42 +1,77 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Box, Container, Typography, CircularProgress } from '@mui/material';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import { LatLngTuple, Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import migrationApi from '../utils/api/index';
 
+interface CityNode {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+  population?: number;
+}
+
+interface MigrationEdge {
+  source: string;
+  target: string;
+  weight: number;
+}
+
 interface MapData {
-  nodes: Array<{
-    id: string;
-    name: string;
-    lat: number;
-    lon: number;
-  }>;
-  edges: Array<{
-    source: string;
-    target: string;
-    weight: number;
-  }>;
+  nodes: CityNode[];
+  edges: MigrationEdge[];
 }
 
 // Координати міст
 const cityCoordinates: { [key: string]: { lat: number; lon: number } } = {
-  'Київ': { lat: 50.45466, lon: 30.5238 },
-  'Харків': { lat: 49.98081, lon: 36.25272 },
-  'Одеса': { lat: 46.47747, lon: 30.73262 },
-  'Дніпро': { lat: 48.46664, lon: 35.04066 },
-  'Львів': { lat: 49.83826, lon: 24.02324 },
-  'Запоріжжя': { lat: 47.82289, lon: 35.19031 },
-  'Кривий Ріг': { lat: 47.90966, lon: 33.38044 },
-  'Миколаїв': { lat: 46.96591, lon: 31.9974 },
-  'Маріуполь': { lat: 47.09514, lon: 37.54131 },
-  'Вінниця': { lat: 49.23278, lon: 28.48097 }
+  "Київ": { lat: 50.45466, lon: 30.5238 },
+  "Харків": { lat: 49.98081, lon: 36.25272 },
+  "Одеса": { lat: 46.47747, lon: 30.73262 },
+  "Дніпро": { lat: 48.46664, lon: 35.04066 },
+  "Львів": { lat: 49.83826, lon: 24.02324 },
+  "Запоріжжя": { lat: 47.82289, lon: 35.19031 },
+  "Кривий Ріг": { lat: 47.90966, lon: 33.38044 },
+  "Миколаїв": { lat: 46.96591, lon: 31.9974 },
+  "Маріуполь": { lat: 47.09514, lon: 37.54131 },
+  "Вінниця": { lat: 49.23278, lon: 28.48097 },
+  "Полтава": { lat: 49.58827, lon: 34.55142 },
+  "Черкаси": { lat: 49.44443, lon: 32.05977 },
+  "Хмельницький": { lat: 49.42161, lon: 26.99653 },
+  "Чернівці": { lat: 48.29149, lon: 25.94034 },
+  "Житомир": { lat: 50.26487, lon: 28.67669 },
+  "Суми": { lat: 50.9216, lon: 34.80029 },
+  "Рівне": { lat: 50.6199, lon: 26.25162 },
+  "Івано-Франківськ": { lat: 48.9215, lon: 24.70972 },
+  "Камʼянець-Подільський": { lat: 48.6845, lon: 26.58559 },
+  "Біла Церква": { lat: 49.80939, lon: 30.11209 },
+  "Кропивницький": { lat: 48.5132, lon: 32.2597 },
+  "Тернопіль": { lat: 49.55352, lon: 25.59477 },
+  "Луцьк": { lat: 50.75932, lon: 25.34244 },
+  "Кременчук": { lat: 49.0685, lon: 33.42041 },
+  "Мелитополь": { lat: 46.84888, lon: 35.36533 },
+  "Нікополь": { lat: 47.57119, lon: 34.39637 },
+  "Бердянськ": { lat: 46.76644, lon: 36.79872 },
+  "Словʼянськ": { lat: 48.86667, lon: 37.61667 },
+  "Ужгород": { lat: 48.61667, lon: 22.3 },
+  "Алчевськ": { lat: 48.47731, lon: 38.79608 },
+  "Павлоград": { lat: 48.53426, lon: 35.87098 },
+  "Сєвєродонецьк": { lat: 48.94832, lon: 38.49166 },
+  "Євпаторія": { lat: 45.20091, lon: 33.36655 },
+  "Лисичанськ": { lat: 48.90485, lon: 38.44207 },
+  "Камʼянське": { lat: 48.51134, lon: 34.6021 },
+  "Херсон": { lat: 46.63542, lon: 32.61687 },
+  "Чернігів": { lat: 51.50551, lon: 31.28487 },
+  "Горлівка": { lat: 48.29167, lon: 38.05 }
 };
 
 const MigrationMap: React.FC = () => {
+  const [nodes, setNodes] = useState<CityNode[]>([]);
+  const [edges, setEdges] = useState<MigrationEdge[]>([]);
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mapData, setMapData] = useState<MapData | null>(null);
 
   useEffect(() => {
     const fetchMapData = async () => {
@@ -95,7 +130,8 @@ const MigrationMap: React.FC = () => {
         };
 
         console.log('Transformed data:', transformedData);
-        setMapData(transformedData);
+        setNodes(transformedData.nodes);
+        setEdges(transformedData.edges);
         setError(null);
       } catch (err) {
         console.error('Error details:', err);
@@ -107,6 +143,32 @@ const MigrationMap: React.FC = () => {
 
     fetchMapData();
   }, []);
+
+  const handleCityClick = (cityName: string) => {
+    if (selectedCity === cityName) {
+      // Якщо клікнули на вже вибране місто - показуємо всі міграції
+      setSelectedCity(null);
+    } else {
+      setSelectedCity(cityName);
+    }
+  };
+
+  const filteredEdges = useMemo(() => {
+    if (!selectedCity) return edges;
+    return edges.filter(edge => 
+      edge.source === selectedCity || edge.target === selectedCity
+    );
+  }, [edges, selectedCity]);
+
+  const filteredNodes = useMemo(() => {
+    if (!selectedCity) return nodes;
+    const cityNames = new Set([
+      selectedCity,
+      ...filteredEdges.map(edge => edge.source),
+      ...filteredEdges.map(edge => edge.target)
+    ]);
+    return nodes.filter(node => cityNames.has(node.id));
+  }, [nodes, selectedCity, filteredEdges]);
 
   if (loading) {
     return (
@@ -120,14 +182,6 @@ const MigrationMap: React.FC = () => {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <Typography color="error">{error}</Typography>
-      </Box>
-    );
-  }
-
-  if (!mapData) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <Typography color="error">Немає даних для відображення</Typography>
       </Box>
     );
   }
@@ -162,37 +216,43 @@ const MigrationMap: React.FC = () => {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             />
-            {mapData.nodes.map((node) => (
+            {filteredNodes.map((node) => (
               <Marker
                 key={node.id}
                 position={[node.lat, node.lon]}
+                eventHandlers={{
+                  click: () => handleCityClick(node.id)
+                }}
               >
                 <Popup>
-                  <strong>{node.name}</strong>
+                  <div>
+                    <h3>{node.name}</h3>
+                    <p>Населення: {node.population?.toLocaleString() || 'Невідомо'}</p>
+                  </div>
                 </Popup>
               </Marker>
             ))}
-            {mapData.edges.map((edge, index) => {
-              const sourceNode = mapData.nodes.find(n => n.id === edge.source);
-              const targetNode = mapData.nodes.find(n => n.id === edge.target);
+            {filteredEdges.map((edge, index) => {
+              const sourceNode = filteredNodes.find(n => n.id === edge.source);
+              const targetNode = filteredNodes.find(n => n.id === edge.target);
               if (!sourceNode || !targetNode) return null;
               return (
                 <Polyline
-                  key={`line-${index}`}
+                  key={`${edge.source}-${edge.target}-${index}`}
                   positions={[
                     [sourceNode.lat, sourceNode.lon],
                     [targetNode.lat, targetNode.lon]
                   ]}
-                  color="red"
-                  weight={edge.weight}
-                  opacity={0.6}
+                  color={edge.weight > 100 ? '#ff0000' : '#0000ff'}
+                  weight={Math.min(edge.weight / 10, 5)}
                 >
                   <Popup>
-                    <strong>Міграційний потік</strong>
-                    <br />
-                    {`${sourceNode.name} → ${targetNode.name}`}
-                    <br />
-                    Кількість мігрантів: {edge.weight}
+                    <div>
+                      <h3>Міграція</h3>
+                      <p>З: {edge.source}</p>
+                      <p>До: {edge.target}</p>
+                      <p>Кількість: {edge.weight}</p>
+                    </div>
                   </Popup>
                 </Polyline>
               );
@@ -200,9 +260,9 @@ const MigrationMap: React.FC = () => {
           </MapContainer>
         </Box>
         <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
-          Кількість міст: {mapData.nodes.length}
+          Кількість міст: {nodes.length}
           <br />
-          Кількість зв'язків: {mapData.edges.length}
+          Кількість зв'язків: {edges.length}
         </Typography>
       </Box>
     </Container>

@@ -1,6 +1,6 @@
 import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
-import { LatLngTuple, Icon } from 'leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMapEvents } from 'react-leaflet';
+import { Icon, LatLngTuple } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { City, MigrationFlow } from '../types/index';
 import { Box } from '@mui/material';
@@ -8,8 +8,17 @@ import { Box } from '@mui/material';
 interface MapProps {
     cities: City[];
     migrations: MigrationFlow[];
-    onCityClick: (city: City) => void;
+    onCityClick: (city: City | null) => void;
 }
+
+const MapEvents = ({ onCityClick }: { onCityClick: (city: City | null) => void }) => {
+    useMapEvents({
+        click: () => {
+            onCityClick(null);
+        },
+    });
+    return null;
+};
 
 const Map: React.FC<MapProps> = ({ cities, migrations, onCityClick }) => {
     const defaultCenter: LatLngTuple = [48.3794, 31.1656]; // Центр України
@@ -56,6 +65,7 @@ const Map: React.FC<MapProps> = ({ cities, migrations, onCityClick }) => {
                 style={{ width: '100%', height: '100%' }}
                 zoomControl={false}
             >
+                <MapEvents onCityClick={onCityClick} />
                 <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -105,4 +115,4 @@ const Map: React.FC<MapProps> = ({ cities, migrations, onCityClick }) => {
     );
 };
 
-export default Map; 
+export default Map;
