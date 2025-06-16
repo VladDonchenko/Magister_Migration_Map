@@ -92,7 +92,7 @@ const HomePage: React.FC = () => {
   return (
     <Box sx={{ 
       height: 'calc(100vh - 64px)', // Віднімаємо висоту навігації
-      position: 'relative',
+      position: 'relative', 
       overflow: 'hidden'
     }}>
       <Grid container spacing={2} sx={{ height: '100%' }}>
@@ -100,18 +100,18 @@ const HomePage: React.FC = () => {
           height: '100%',
           position: 'relative',
           zIndex: 1
-        }}>
-          <Map
-            cities={cities}
-            migrations={migrations}
-            onCityClick={handleCityClick}
-          />
+      }}>
+        <Map
+          cities={cities}
+          migrations={migrations}
+          onCityClick={handleCityClick}
+        />
         </Grid>
       </Grid>
-      
+
       {selectedCity && (
         <Box
-          sx={{
+          sx={{ 
             position: 'fixed',
             top: '80px',
             right: '20px',

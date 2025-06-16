@@ -12,9 +12,11 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Paper
+  Paper,
+  Box
 } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface CityStats {
   name: string;
@@ -26,6 +28,12 @@ interface CityStats {
   incomingCount: number;
   outgoingCount: number;
   averageDistance: number;
+  gender_stats: { gender: string; count: number }[];
+  housing_stats: { type: string; count: number }[];
+  transport_stats: { type: string; count: number }[];
+  family_status_stats: { status: string; count: number }[];
+  education_stats: { level: string; count: number }[];
+  age_stats: { [key: string]: number };
 }
 
 interface MigrationData {
@@ -92,6 +100,10 @@ const CityPage: React.FC = () => {
     fetchCityData();
   }, [cityName]);
 
+  const handleCityClick = (fromCity: string, toCity: string) => {
+    navigate(`/migration/${encodeURIComponent(fromCity)}/${encodeURIComponent(toCity)}`);
+  };
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -150,7 +162,12 @@ const CityPage: React.FC = () => {
                 <TableBody>
                   {incomingMigrations.map((migration) => (
                     <TableRow key={migration.source}>
-                      <TableCell>{migration.source}</TableCell>
+                      <TableCell 
+                        onClick={() => handleCityClick(migration.source, cityName || '')}
+                        style={{ cursor: 'pointer', color: '#1976d2' }}
+                      >
+                        {migration.source}
+                      </TableCell>
                       <TableCell>{migration.weight}</TableCell>
                     </TableRow>
                   ))}
@@ -173,13 +190,139 @@ const CityPage: React.FC = () => {
                 <TableBody>
                   {outgoingMigrations.map((migration) => (
                     <TableRow key={migration.target}>
-                      <TableCell>{migration.target}</TableCell>
+                      <TableCell 
+                        onClick={() => handleCityClick(cityName || '', migration.target)}
+                        style={{ cursor: 'pointer', color: '#1976d2' }}
+                      >
+                        {migration.target}
+                      </TableCell>
                       <TableCell>{migration.weight}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </TableContainer>
+          </Card>
+        </Grid>
+      </Grid>
+
+      <Grid container spacing={2} style={{ marginTop: '16px' }}>
+        <Grid item xs={12}>
+          <Typography variant="h5" gutterBottom>
+            Аналітика міграції
+          </Typography>
+        </Grid>
+
+        {/* Діаграма розподілу за статтю */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <Typography variant="h6" style={{ padding: '16px' }}>Розподіл за статтю</Typography>
+            <Box sx={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={cityStats?.gender_stats}
+                    dataKey="count"
+                    nameKey="gender"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label
+                  >
+                    {cityStats?.gender_stats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? '#8884d8' : '#82ca9d'} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </Card>
+        </Grid>
+
+        {/* Діаграма розподілу за типом житла */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <Typography variant="h6" style={{ padding: '16px' }}>Розподіл за типом житла</Typography>
+            <Box sx={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={cityStats?.housing_stats}
+                    dataKey="count"
+                    nameKey="type"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label
+                  >
+                    {cityStats?.housing_stats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={index === 0 ? '#8884d8' : '#82ca9d'} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </Card>
+        </Grid>
+
+        {/* Діаграма розподілу за сімейним станом */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <Typography variant="h6" style={{ padding: '16px' }}>Розподіл за сімейним станом</Typography>
+            <Box sx={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cityStats?.family_status_stats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="status" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+          </Card>
+        </Grid>
+
+        {/* Діаграма розподілу за рівнем освіти */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <Typography variant="h6" style={{ padding: '16px' }}>Розподіл за рівнем освіти</Typography>
+            <Box sx={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cityStats?.education_stats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="level" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+          </Card>
+        </Grid>
+
+        {/* Діаграма розподілу за типом транспорту */}
+        <Grid item xs={12} md={6}>
+          <Card>
+            <Typography variant="h6" style={{ padding: '16px' }}>Розподіл за типом транспорту</Typography>
+            <Box sx={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={cityStats?.transport_stats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="type" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
           </Card>
         </Grid>
       </Grid>

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -11,6 +11,7 @@ import {
   ListItem,
   ListItemText,
   Box,
+  Button,
   Table,
   TableBody,
   TableCell,
@@ -18,185 +19,203 @@ import {
   TableHead,
   TableRow
 } from '@mui/material';
-import MigrantCard from './MigrantCard';
-import migrationApi from '../utils/api/index';
+import { ArrowBack } from '@mui/icons-material';
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-interface Migrant {
-  id: number;
-  name: string;
-  age: number;
-  gender: string;
-  reason: string;
-  date: string;
-  passport_series: string;
-  passport_number: string;
-  registration: string;
-  education: string;
-  occupation: string;
-  marital_status: string;
-  children_count: number;
-  monthly_income: number;
-  transport_type: string;
-  housing_type: string;
-}
-
-interface FlowData {
+interface MigrationFlowData {
   fromCity: string;
   toCity: string;
   totalCount: number;
-  reasons: string[];
-  avgAge: number;
-  genderDistribution: {
-    male: number;
-    female: number;
-  };
-  migrants: Migrant[];
+  averageAge: number;
+  reasons: { reason: string; count: number }[];
+  transportTypes: { type: string; count: number }[];
+  housingTypes: { type: string; count: number }[];
+  educationLevels: { level: string; count: number }[];
+  familyStatuses: { status: string; count: number }[];
+  migrants: Array<{
+    id: number;
+    name: string;
+    age: number;
+    gender: string;
+    education: string;
+    profession: string;
+    family_status: string;
+    reason: string;
+    transport_type: string;
+    housing_type: string;
+    migration_date: string;
+  }>;
 }
+
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 const MigrationFlowDetails: React.FC = () => {
   const { fromCity, toCity } = useParams<{ fromCity: string; toCity: string }>();
-  const [flowData, setFlowData] = useState<FlowData | null>(null);
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [migrants, setMigrants] = useState<Migrant[]>([]);
+  const [flowData, setFlowData] = useState<MigrationFlowData | null>(null);
 
   useEffect(() => {
     const fetchFlowData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        if (!fromCity || !toCity) {
-          throw new Error('Не вказано міста для пошуку');
-        }
-        
-        // Сначала получаем детали потока
-        const detailsResponse = await migrationApi.getFlowDetails(fromCity, toCity);
 
-        if (detailsResponse.status === 404) {
-          throw new Error(`Міграційний потік між містами "${fromCity}" та "${toCity}" не знайдено`);
+        const response = await fetch(`/api/migration/flow?from_city=${encodeURIComponent(fromCity || '')}&to_city=${encodeURIComponent(toCity || '')}`);
+        if (!response.ok) {
+          throw new Error('Помилка при отриманні даних');
         }
 
-        if (!detailsResponse.ok) {
-          const errorData = await detailsResponse.json();
-          throw new Error(errorData.detail || 'Помилка при завантаженні деталей потоку');
-        }
-
-        const detailsData = await detailsResponse.json();
-        setFlowData({
-          ...detailsData,
-          migrants: []
-        });
-        setLoading(false);
-
-        // Затем получаем список мигрантов
-        const migrantsResponse = await migrationApi.getMigrants(fromCity, toCity);
-
-        if (!migrantsResponse.ok) {
-          const errorData = await migrantsResponse.json();
-          console.error('Помилка при завантаженні списку мігрантів:', errorData);
-          return;
-        }
-
-        const migrantsData = await migrantsResponse.json();
-        setFlowData(prev => prev ? {
-          ...prev,
-          migrants: Array.isArray(migrantsData) ? migrantsData : []
-        } : null);
-      } catch (err) {
-        console.error('Помилка при отриманні даних:', err);
-        setError(err instanceof Error ? err.message : 'Невідома помилка');
-        setFlowData(null);
-      }
-    };
-
-    const fetchMigrants = async () => {
-      try {
-        setLoading(true);
-        const migrants = await migrationApi.getMigrants(fromCity, toCity);
-        setMigrants(migrants);
-        setError(null);
-      } catch (err) {
-        setError('Помилка при отриманні списку мігрантів');
-        console.error('Error fetching migrants:', err);
+        const data = await response.json();
+        setFlowData(data.details);
+      } catch (err: any) {
+        setError(err.message || 'Помилка при завантаженні даних');
       } finally {
         setLoading(false);
       }
     };
 
-    if (fromCity && toCity) {
-      fetchFlowData();
-      fetchMigrants();
-    }
+    fetchFlowData();
   }, [fromCity, toCity]);
 
   if (loading) {
     return (
-      <Container sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <CircularProgress />
-      </Container>
+      </Box>
     );
   }
 
   if (error) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Alert severity="error">
-          <Typography variant="body1" gutterBottom>
-            {error}
-          </Typography>
-          <Typography variant="body2">
-            Можливі причини:
-          </Typography>
-          <List dense>
-            <ListItem>
-              <ListItemText primary="Міграційний потік не існує в базі даних" />
-            </ListItem>
-            <ListItem>
-              <ListItemText primary="Сервер тимчасово недоступний" />
-            </ListItem>
-            <ListItem>
-              <ListItemText primary="Неправильний формат URL" />
-            </ListItem>
-          </List>
-        </Alert>
+        <Alert severity="error">{error}</Alert>
       </Container>
     );
   }
 
   if (!flowData) {
-    return null;
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Alert severity="info">Дані не знайдено</Alert>
+      </Container>
+    );
   }
 
   return (
     <Container sx={{ mt: 4 }}>
+      <Button 
+        startIcon={<ArrowBack />} 
+        onClick={() => navigate(-1)}
+        style={{ marginBottom: '24px' }}
+      >
+        Назад
+      </Button>
+
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
+        <Typography variant="h4" gutterBottom>
           Міграційний потік: {flowData.fromCity} → {flowData.toCity}
         </Typography>
         <Typography variant="h6" color="text.secondary">
           Кількість мігрантів: {flowData.totalCount}
         </Typography>
+        <Typography variant="h6" color="text.secondary">
+          Середній вік: {flowData.averageAge ? flowData.averageAge.toFixed(1) : '0.0'} років
+        </Typography>
       </Paper>
 
-      <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-        Список мігрантів:
-      </Typography>
-
       <Grid container spacing={3}>
-        {flowData.migrants && flowData.migrants.length > 0 ? (
-          flowData.migrants.map((migrant) => (
-            <Grid item xs={12} key={migrant.id}>
-              <MigrantCard migrant={migrant} />
-            </Grid>
-          ))
-        ) : (
-          <Grid item xs={12}>
-            <Alert severity="info">
-              Немає доступних даних про мігрантів для цього потоку
-            </Alert>
-          </Grid>
-        )}
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Причини міграції
+            </Typography>
+            <Box sx={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={flowData.reasons}
+                    dataKey="count"
+                    nameKey="reason"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    label
+                  >
+                    {flowData.reasons.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Типи транспорту
+            </Typography>
+            <Box sx={{ height: 300 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={flowData.transportTypes}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="type" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="count" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </Box>
+          </Paper>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Paper sx={{ p: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Список мігрантів
+            </Typography>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Ім'я</TableCell>
+                    <TableCell>Вік</TableCell>
+                    <TableCell>Стать</TableCell>
+                    <TableCell>Освіта</TableCell>
+                    <TableCell>Професія</TableCell>
+                    <TableCell>Сімейний стан</TableCell>
+                    <TableCell>Причина</TableCell>
+                    <TableCell>Транспорт</TableCell>
+                    <TableCell>Тип житла</TableCell>
+                    <TableCell>Дата міграції</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {flowData.migrants.map((migrant) => (
+                    <TableRow key={migrant.id}>
+                      <TableCell>{migrant.name}</TableCell>
+                      <TableCell>{migrant.age}</TableCell>
+                      <TableCell>{migrant.gender}</TableCell>
+                      <TableCell>{migrant.education}</TableCell>
+                      <TableCell>{migrant.profession}</TableCell>
+                      <TableCell>{migrant.family_status}</TableCell>
+                      <TableCell>{migrant.reason}</TableCell>
+                      <TableCell>{migrant.transport_type}</TableCell>
+                      <TableCell>{migrant.housing_type}</TableCell>
+                      <TableCell>{new Date(migrant.migration_date).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Grid>
       </Grid>
     </Container>
   );

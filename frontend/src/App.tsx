@@ -6,6 +6,7 @@ import UploadData from './components/UploadData';
 import Analytics from './components/Analytics';
 import HomePage from './pages/HomePage';
 import CityPage from './pages/CityPage';
+import MigrationFlowDetails from './components/MigrationFlowDetails';
 
 const theme = createTheme({
   palette: {
@@ -33,6 +34,7 @@ const App: React.FC = () => {
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/export" element={<div>Export Page</div>} />
               <Route path="/city/:cityName" element={<CityPage />} />
+              <Route path="/migration/:fromCity/:toCity" element={<MigrationFlowDetails />} />
             </Routes>
           </Box>
         </Box>

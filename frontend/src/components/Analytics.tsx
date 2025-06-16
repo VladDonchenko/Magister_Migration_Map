@@ -32,6 +32,22 @@ interface AnalyticsData {
     city: string;
     count: number;
   }>;
+  housing_stats: Array<{
+    type: string;
+    count: number;
+  }>;
+  transport_stats: Array<{
+    type: string;
+    count: number;
+  }>;
+  family_status_stats: Array<{
+    status: string;
+    count: number;
+  }>;
+  education_stats: Array<{
+    level: string;
+    count: number;
+  }>;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
@@ -49,7 +65,11 @@ const defaultData: AnalyticsData = {
   age_stats: {},
   gender_stats: [],
   top_from_cities: [],
-  top_to_cities: []
+  top_to_cities: [],
+  housing_stats: [],
+  transport_stats: [],
+  family_status_stats: [],
+  education_stats: []
 };
 
 const Analytics: React.FC = () => {
@@ -66,7 +86,11 @@ const Analytics: React.FC = () => {
     top_from_cities: [],
     top_to_cities: [],
     age_stats: {},
-    gender_stats: []
+    gender_stats: [],
+    housing_stats: [],
+    transport_stats: [],
+    family_status_stats: [],
+    education_stats: []
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,10 +127,14 @@ const Analytics: React.FC = () => {
         top_from_cities: response?.top_outgoing_cities || [],
         top_to_cities: response?.top_incoming_cities || [],
         age_stats: response?.age_stats || {},
-        gender_stats: response?.gender_stats || []
+        gender_stats: response?.gender_stats || [],
+        housing_stats: response?.housing_stats || [],
+        transport_stats: response?.transport_stats || [],
+        family_status_stats: response?.family_status_stats || [],
+        education_stats: response?.education_stats || []
       };
       console.log('New data to be set:', newData);
-      
+
       setData(newData);
       console.log('Data set to state');
       setError(null);
@@ -188,7 +216,7 @@ const Analytics: React.FC = () => {
   return (
     <div className="analytics-container">
       <Typography variant="h4" gutterBottom>
-        Аналітика міграції 1
+        Аналітика міграції
       </Typography>
       <Box mb={3}>
         <ButtonGroup variant="contained" aria-label="data management buttons">
@@ -216,10 +244,10 @@ const Analytics: React.FC = () => {
             <Paper elevation={3} sx={{ p: 3 }}>
               <>
                 <Typography variant="h5" gutterBottom>
-                  Загальна статистика
-                </Typography>
+            Загальна статистика
+          </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6} md={3}>
+            <Grid item xs={12} sm={6} md={3}>
                     <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
                       <Typography variant="h6" color="primary">
                         {data.stats.total_migrations}
@@ -227,9 +255,9 @@ const Analytics: React.FC = () => {
                       <Typography variant="body2" color="text.secondary">
                         Всього міграцій
                       </Typography>
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
                     <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
                       <Typography variant="h6" color="primary">
                         {data.stats.average_age.toFixed(1)}
@@ -237,9 +265,9 @@ const Analytics: React.FC = () => {
                       <Typography variant="body2" color="text.secondary">
                         Середній вік
                       </Typography>
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
                     <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
                       <Typography variant="h6" color="primary">
                         {data.stats.most_common_reason}
@@ -247,9 +275,9 @@ const Analytics: React.FC = () => {
                       <Typography variant="body2" color="text.secondary">
                         Найпоширеніша причина
                       </Typography>
-                    </Paper>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
                     <Paper elevation={2} sx={{ p: 2, textAlign: 'center' }}>
                       <Typography variant="h6" color="primary">
                         {data.stats.most_common_transport}
@@ -257,9 +285,9 @@ const Analytics: React.FC = () => {
                       <Typography variant="body2" color="text.secondary">
                         Найпоширеніший транспорт
                       </Typography>
-                    </Paper>
-                  </Grid>
-                </Grid>
+              </Paper>
+            </Grid>
+          </Grid>
               </>
             </Paper>
           </Grid>
@@ -267,22 +295,22 @@ const Analytics: React.FC = () => {
           <Grid item xs={12} md={6}>
             <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
               <>
-                <Typography variant="h5" gutterBottom>
-                  Топ-5 міст відправлення
-                </Typography>
+              <Typography variant="h5" gutterBottom>
+                Топ-5 міст відправлення
+              </Typography>
                 {data.top_from_cities && data.top_from_cities.length > 0 ? (
-                  <Box height={300}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.top_from_cities}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="city" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
+              <Box height={300}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.top_from_cities}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="city" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
                         <Bar dataKey="outgoing_count" fill="#82ca9d" name="Кількість виїздів" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
                 ) : (
                   <Typography>Немає даних</Typography>
                 )}
@@ -293,22 +321,22 @@ const Analytics: React.FC = () => {
           <Grid item xs={12} md={6}>
             <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
               <>
-                <Typography variant="h5" gutterBottom>
-                  Топ-5 міст призначення
-                </Typography>
+              <Typography variant="h5" gutterBottom>
+                Топ-5 міст призначення
+              </Typography>
                 {data.top_to_cities && data.top_to_cities.length > 0 ? (
-                  <Box height={300}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.top_to_cities}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="city" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
+              <Box height={300}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.top_to_cities}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="city" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
                         <Bar dataKey="incoming_count" fill="#ffc658" name="Кількість приїздів" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
                 ) : (
                   <Typography>Немає даних</Typography>
                 )}
@@ -319,26 +347,174 @@ const Analytics: React.FC = () => {
           <Grid item xs={12}>
             <Paper elevation={3} sx={{ p: 3 }}>
               <>
-                <Typography variant="h5" gutterBottom>
-                  Причини міграції
-                </Typography>
+              <Typography variant="h5" gutterBottom>
+                Причини міграції
+              </Typography>
                 {data.reasons && data.reasons.length > 0 ? (
-                  <Box height={300}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={data.reasons}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="reason" />
-                        <YAxis />
-                        <Tooltip />
-                        <Legend />
+              <Box height={300}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.reasons}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="reason" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
                         <Bar dataKey="count" fill="#ff7300" name="Кількість мігрантів" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </Box>
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
                 ) : (
                   <Typography>Немає даних</Typography>
                 )}
               </>
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+
+      {/* Нова секція з додатковими діаграмами */}
+      <Box p={3}>
+        <Grid container spacing={3}>
+          {/* Розподіл за статтю */}
+          <Grid item xs={12} md={6}>
+            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h5" gutterBottom>
+                Розподіл за статтю
+              </Typography>
+              {data.gender_stats && data.gender_stats.length > 0 ? (
+                <Box height={300}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={data.gender_stats}
+                        dataKey="count"
+                        nameKey="gender"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                      >
+                        {data.gender_stats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Typography>Немає даних</Typography>
+              )}
+            </Paper>
+          </Grid>
+
+          {/* Розподіл за типом житла */}
+          <Grid item xs={12} md={6}>
+            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h5" gutterBottom>
+                Розподіл за типом житла
+              </Typography>
+              {data.housing_stats && data.housing_stats.length > 0 ? (
+                <Box height={300}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={data.housing_stats}
+                        dataKey="count"
+                        nameKey="type"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={100}
+                        label
+                      >
+                        {data.housing_stats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Typography>Немає даних</Typography>
+              )}
+            </Paper>
+          </Grid>
+
+          {/* Розподіл за сімейним станом */}
+          <Grid item xs={12} md={6}>
+            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h5" gutterBottom>
+                Розподіл за сімейним станом
+              </Typography>
+              {data.family_status_stats && data.family_status_stats.length > 0 ? (
+                <Box height={300}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.family_status_stats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="status" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="#8884d8" name="Кількість мігрантів" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Typography>Немає даних</Typography>
+              )}
+            </Paper>
+          </Grid>
+
+          {/* Розподіл за рівнем освіти */}
+          <Grid item xs={12} md={6}>
+            <Paper elevation={3} sx={{ p: 3, height: '100%' }}>
+              <Typography variant="h5" gutterBottom>
+                Розподіл за рівнем освіти
+              </Typography>
+              {data.education_stats && data.education_stats.length > 0 ? (
+                <Box height={300}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.education_stats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="level" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="#82ca9d" name="Кількість мігрантів" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Typography>Немає даних</Typography>
+              )}
+            </Paper>
+          </Grid>
+
+          {/* Розподіл за типом транспорту */}
+          <Grid item xs={12}>
+            <Paper elevation={3} sx={{ p: 3 }}>
+              <Typography variant="h5" gutterBottom>
+                Розподіл за типом транспорту
+              </Typography>
+              {data.transport_stats && data.transport_stats.length > 0 ? (
+                <Box height={300}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data.transport_stats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="type" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="count" fill="#ffc658" name="Кількість мігрантів" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Typography>Немає даних</Typography>
+              )}
             </Paper>
           </Grid>
         </Grid>

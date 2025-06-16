@@ -7,19 +7,19 @@ import migrationApi from '../utils/api/index';
 import { useNavigate } from 'react-router-dom';
 
 interface CityNode {
-  id: string;
-  name: string;
-  lat: number;
-  lon: number;
+    id: string;
+    name: string;
+    lat: number;
+    lon: number;
   population?: number;
   incoming_migrations?: number;
   outgoing_migrations?: number;
 }
 
 interface MigrationEdge {
-  source: string;
-  target: string;
-  weight: number;
+    source: string;
+    target: string;
+    weight: number;
 }
 
 interface MapData {
@@ -167,6 +167,19 @@ const MigrationMap: React.FC = () => {
     );
   }, [edges, selectedCity]);
 
+  // Знаходимо максимальну кількість мігрантів для нормалізації
+  const maxWeight = useMemo(() => {
+    return Math.max(...edges.map(edge => edge.weight), 1);
+  }, [edges]);
+
+  // Функція для визначення кольору на основі відносної кількості мігрантів
+  const getEdgeColor = (weight: number) => {
+    const relativeWeight = weight / maxWeight;
+    if (relativeWeight > 0.7) return '#ff0000'; // Червоний для високої міграції
+    if (relativeWeight > 0.3) return '#ffa500'; // Оранжевий для середньої міграції
+    return '#00ff00'; // Зелений для низької міграції
+  };
+
   const filteredNodes = useMemo(() => {
     if (!selectedCity) return nodes;
     const cityNames = new Set([
@@ -250,7 +263,7 @@ const MigrationMap: React.FC = () => {
                     [sourceNode.lat, sourceNode.lon],
                     [targetNode.lat, targetNode.lon]
                   ]}
-                  color={edge.weight > 100 ? '#ff0000' : '#0000ff'}
+                  color={getEdgeColor(edge.weight)}
                   weight={Math.min(edge.weight / 10, 5)}
                 >
                   <Popup>
@@ -258,7 +271,7 @@ const MigrationMap: React.FC = () => {
                       <h3>Міграція</h3>
                       <p>З: {edge.source}</p>
                       <p>До: {edge.target}</p>
-                      <p>Кількість: {edge.weight}</p>
+                      <p>Кількість мігрантів: {edge.weight}</p>
                     </div>
                   </Popup>
                 </Polyline>

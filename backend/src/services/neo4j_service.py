@@ -310,50 +310,98 @@ class Neo4jService:
             logger.error(f"Помилка створення міграції: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))
 
-    def get_city_stats(self, city_name: str) -> dict:
-        """Отримати статистику міграції для міста"""
-        logger.info("===================================")
-        logger.info("ВИКОНАННЯ ЗАПИТУ ДО NEO4J")
-        
-        query = """
-            MATCH (c:City {name: $city_name})
-            OPTIONAL MATCH (p:Person)-[r:MIGRATES_TO]->(c)
-            WITH c, count(r) as incoming
-            OPTIONAL MATCH (p2:Person)-[r2:MIGRATES_FROM]->(c)
-            RETURN {
-                name: c.name,
-                population: c.population,
-                region: c.region,
-                country: c.country,
-                latitude: c.latitude,
-                longitude: c.longitude,
-                incoming_migrations: incoming,
-                outgoing_migrations: count(r2)
-            } as city
-        """
-        
-        params = {"city_name": city_name}
-        logger.info(f"Запит: {query}")
-        logger.info(f"Параметри: {params}")
-        logger.info("-----------------------------------")
-        
+    def get_city_stats(self, city_name: str) -> Dict[str, Any]:
+        """Отримати статистику міграції для конкретного міста"""
         try:
-            result = self.execute_query(query, params)
-            if not result:
+            # Загальна статистика
+            total_stats = self.execute_query("""
+                MATCH (c:City {name: $city_name})
+                OPTIONAL MATCH (p:Person)-[r:MIGRATES_FROM]->(c)
+                WITH c, count(r) as outgoing_count
+                OPTIONAL MATCH (p:Person)-[r:MIGRATES_TO]->(c)
+                WITH c, outgoing_count, count(r) as incoming_count
+                OPTIONAL MATCH (p:Person)-[r:MIGRATES_FROM|MIGRATES_TO]->(c)
+                WITH c, outgoing_count, incoming_count, avg(r.distance_km) as avg_distance
+                RETURN {
+                    name: c.name,
+                    population: c.population,
+                    region: c.region,
+                    country: c.country,
+                    lat: c.lat,
+                    lon: c.lon,
+                    outgoingCount: outgoing_count,
+                    incomingCount: incoming_count,
+                    averageDistance: avg_distance
+                } as stats
+            """, {"city_name": city_name})
+
+            if not total_stats:
                 return None
-                
-            city_data = result[0].get('city')
-            if not city_data:
-                return None
-                
-            return {
-                "outgoingCount": city_data.get('outgoing_migrations', 0),
-                "incomingCount": city_data.get('incoming_migrations', 0),
-                "averageDistance": 0  # TODO: Додати розрахунок середньої відстані
-            }
-            
+
+            stats = total_stats[0]["stats"]
+
+            # Статистика за статтю
+            gender_stats = self.execute_query("""
+                MATCH (p:Person)-[r:MIGRATES_FROM|MIGRATES_TO]->(c:City {name: $city_name})
+                WITH p.gender as gender, count(*) as count
+                RETURN gender, count
+                ORDER BY count DESC
+            """, {"city_name": city_name})
+
+            # Статистика за типом житла
+            housing_stats = self.execute_query("""
+                MATCH (p:Person)-[r:MIGRATES_FROM|MIGRATES_TO]->(c:City {name: $city_name})
+                WITH r.housing_type as type, count(*) as count
+                RETURN type, count
+                ORDER BY count DESC
+            """, {"city_name": city_name})
+
+            # Статистика за типом транспорту
+            transport_stats = self.execute_query("""
+                MATCH (p:Person)-[r:MIGRATES_FROM|MIGRATES_TO]->(c:City {name: $city_name})
+                WITH r.transport_type as type, count(*) as count
+                RETURN type, count
+                ORDER BY count DESC
+            """, {"city_name": city_name})
+
+            # Статистика за сімейним станом
+            family_status_stats = self.execute_query("""
+                MATCH (p:Person)-[r:MIGRATES_FROM|MIGRATES_TO]->(c:City {name: $city_name})
+                WITH p.family_status as status, count(*) as count
+                RETURN status, count
+                ORDER BY count DESC
+            """, {"city_name": city_name})
+
+            # Статистика за рівнем освіти
+            education_stats = self.execute_query("""
+                MATCH (p:Person)-[r:MIGRATES_FROM|MIGRATES_TO]->(c:City {name: $city_name})
+                WITH p.education as level, count(*) as count
+                RETURN level, count
+                ORDER BY count DESC
+            """, {"city_name": city_name})
+
+            # Статистика за віком
+            age_stats = self.execute_query("""
+                MATCH (p:Person)-[r:MIGRATES_FROM|MIGRATES_TO]->(c:City {name: $city_name})
+                WITH p.age as age, count(*) as count
+                RETURN age, count
+                ORDER BY age
+            """, {"city_name": city_name})
+
+            # Додаємо нові статистики до загальної статистики
+            stats.update({
+                "gender_stats": gender_stats,
+                "housing_stats": housing_stats,
+                "transport_stats": transport_stats,
+                "family_status_stats": family_status_stats,
+                "education_stats": education_stats,
+                "age_stats": {str(stat["age"]): stat["count"] for stat in age_stats}
+            })
+
+            return stats
+
         except Exception as e:
-            logger.error(f"Помилка при отриманні статистики міста {city_name}: {str(e)}")
+            logger.error(f"Помилка при отриманні статистики міста: {str(e)}")
             raise
 
     def get_cities(self) -> List[Dict[str, Any]]:
@@ -477,4 +525,65 @@ class Neo4jService:
             }
         except Exception as e:
             logger.error(f"Помилка отримання інформації про мігрантів: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    def get_migration_flow_details(self, from_city: str, to_city: str) -> Dict:
+        """Отримання деталей міграційного потоку між містами"""
+        try:
+            # Перевірка існування міст
+            cities_query = """
+            MATCH (c:City)
+            WHERE c.name IN [$from_city, $to_city]
+            RETURN c.name as name
+            """
+            cities_result = self.execute_query(cities_query, {"from_city": from_city, "to_city": to_city})
+            if len(cities_result) != 2:
+                raise ValueError(f"Один або обидва міста не знайдено: {from_city}, {to_city}")
+
+            # Коректний запит для міграцій
+            details_query = """
+            MATCH (from:City {name: $from_city})<-[:MIGRATES_FROM]-(p:Person)-[r:MIGRATES_TO]->(to:City {name: $to_city})
+            WITH from, to, p, r
+            RETURN {
+                fromCity: from.name,
+                toCity: to.name,
+                totalCount: count(p),
+                averageAge: avg(p.age),
+                reasons: collect(DISTINCT r.reason),
+                transportTypes: collect(DISTINCT r.transport_type),
+                housingTypes: collect(DISTINCT r.housing_type),
+                educationLevels: collect(DISTINCT p.education),
+                familyStatuses: collect(DISTINCT p.family_status),
+                migrants: collect({
+                    id: p.id,
+                    name: p.first_name + ' ' + p.last_name,
+                    age: p.age,
+                    gender: p.gender,
+                    education: p.education,
+                    profession: p.profession,
+                    family_status: p.family_status,
+                    reason: r.reason,
+                    transport_type: r.transport_type,
+                    housing_type: r.housing_type,
+                    migration_date: r.date
+                })
+            } as details
+            """
+            result = self.execute_query(details_query, {"from_city": from_city, "to_city": to_city})
+            if not result:
+                return {
+                    "fromCity": from_city,
+                    "toCity": to_city,
+                    "totalCount": 0,
+                    "averageAge": 0,
+                    "reasons": [],
+                    "transportTypes": [],
+                    "housingTypes": [],
+                    "educationLevels": [],
+                    "familyStatuses": [],
+                    "migrants": []
+                }
+            return result[0]
+        except Exception as e:
+            logger.error(f"Помилка отримання деталей міграційного потоку: {str(e)}")
             raise HTTPException(status_code=500, detail=str(e))

@@ -151,39 +151,24 @@ async def get_analytics(neo4j_service: Neo4jService = Depends(get_neo4j_service)
     try:
         logger.info("Отримуємо дані для аналітики")
         
-        # Перевіряємо загальну кількість міграцій
-        total_count = neo4j_service.execute_query("""
-            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
-            RETURN count(r) as total
-        """)
-        logger.info(f"Загальна кількість міграцій: {total_count}")
-        
-        # Перевіряємо кількість міст
-        cities_count = neo4j_service.execute_query("""
-            MATCH (c:City)
-            RETURN count(c) as total
-        """)
-        logger.info(f"Кількість міст: {cities_count}")
-        
-        # Перевіряємо кількість людей
-        people_count = neo4j_service.execute_query("""
-            MATCH (p:Person)
-            RETURN count(p) as total
-        """)
-        logger.info(f"Кількість людей: {people_count}")
-        
         # Загальна статистика
         total_stats = neo4j_service.execute_query("""
             MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            WITH count(r) as total_count,
+                 count(distinct p) as unique_migrants,
+                 avg(p.age) as avg_age,
+                 collect(distinct r.reason) as reasons,
+                 collect(distinct r.transport_type) as transport_types
             RETURN {
-                total_migrations: count(r),
-                unique_migrants: count(distinct p),
-                average_age: avg(p.age),
-                most_common_reason: head(collect(distinct r.reason)),
-                most_common_transport: head(collect(distinct r.transport_type))
+                total_migrations: total_count,
+                unique_migrants: unique_migrants,
+                average_age: avg_age,
+                most_common_reason: head(reasons),
+                most_common_transport: head(transport_types),
+                male_percentage: 50.0,
+                female_percentage: 50.0
             } as stats
         """)
-        logger.info(f"Загальна статистика: {total_stats}")
         
         # Топ міст за кількістю виїздів
         top_outgoing = neo4j_service.execute_query("""
@@ -193,7 +178,6 @@ async def get_analytics(neo4j_service: Neo4jService = Depends(get_neo4j_service)
             ORDER BY outgoing_count DESC
             LIMIT 5
         """)
-        logger.info(f"Топ міст за виїздами: {top_outgoing}")
         
         # Топ міст за кількістю приїздів
         top_incoming = neo4j_service.execute_query("""
@@ -203,7 +187,6 @@ async def get_analytics(neo4j_service: Neo4jService = Depends(get_neo4j_service)
             ORDER BY incoming_count DESC
             LIMIT 5
         """)
-        logger.info(f"Топ міст за приїздами: {top_incoming}")
         
         # Статистика за причинами міграції
         migration_reasons = neo4j_service.execute_query("""
@@ -212,25 +195,67 @@ async def get_analytics(neo4j_service: Neo4jService = Depends(get_neo4j_service)
             RETURN reason, count
             ORDER BY count DESC
         """)
-        logger.info(f"Причини міграції: {migration_reasons}")
         
-        response = {
-            "total_stats": {
-                "total_migrations": total_stats[0]["stats"]["total_migrations"] if total_stats else 0,
-                "average_age": total_stats[0]["stats"]["average_age"] if total_stats else 0,
-                "most_common_reason": total_stats[0]["stats"]["most_common_reason"] if total_stats else "",
-                "most_common_transport": total_stats[0]["stats"]["most_common_transport"] if total_stats else "",
-                "male_percentage": 50,  # Заглушка, потрібно додати реальний розрахунок
-                "female_percentage": 50  # Заглушка, потрібно додати реальний розрахунок
-            },
+        # Статистика за віком
+        age_stats = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            WITH p.age as age, count(*) as count
+            RETURN age, count
+            ORDER BY age
+        """)
+        
+        # Статистика за статтю
+        gender_stats = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            WITH p.gender as gender, count(*) as count
+            RETURN gender, count
+            ORDER BY count DESC
+        """)
+        
+        # Статистика за типом житла
+        housing_stats = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            WITH r.housing_type as type, count(*) as count
+            RETURN type, count
+            ORDER BY count DESC
+        """)
+        
+        # Статистика за типом транспорту
+        transport_stats = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            WITH r.transport_type as type, count(*) as count
+            RETURN type, count
+            ORDER BY count DESC
+        """)
+        
+        # Статистика за сімейним станом
+        family_status_stats = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            WITH p.family_status as status, count(*) as count
+            RETURN status, count
+            ORDER BY count DESC
+        """)
+        
+        # Статистика за рівнем освіти
+        education_stats = neo4j_service.execute_query("""
+            MATCH (p:Person)-[r:MIGRATES_FROM]->(c:City)
+            WITH p.education as level, count(*) as count
+            RETURN level, count
+            ORDER BY count DESC
+        """)
+        
+        return {
+            "total_stats": total_stats[0]["stats"] if total_stats else {},
             "top_outgoing_cities": top_outgoing,
             "top_incoming_cities": top_incoming,
             "migration_reasons": migration_reasons,
-            "age_stats": {},  # Заглушка, потрібно додати реальний розрахунок
-            "gender_stats": []  # Заглушка, потрібно додати реальний розрахунок
+            "age_stats": {str(stat["age"]): stat["count"] for stat in age_stats},
+            "gender_stats": gender_stats,
+            "housing_stats": housing_stats,
+            "transport_stats": transport_stats,
+            "family_status_stats": family_status_stats,
+            "education_stats": education_stats
         }
-        logger.info(f"Відповідь від бекенду: {response}")
-        return response
         
     except Exception as e:
         logger.error(f"Помилка при отриманні даних аналітики: {str(e)}")
@@ -289,17 +314,46 @@ async def get_flow_details(
         
         # Отримуємо деталі міграції
         flow_details = neo4j_service.execute_query("""
-            MATCH (from:City {name: $from_city})-[r:MIGRATED_TO]->(to:City {name: $to_city})
-            WITH r, from, to
-            MATCH (p:Person)-[:MADE_MIGRATION]->(r)
+            MATCH (from:City {name: $from_city})<-[:MIGRATES_FROM]-(p:Person)-[r:MIGRATES_TO]->(to:City {name: $to_city})
+            WITH from, to, p, r
+            WITH from, to,
+                 count(*) as total_count,
+                 avg(p.age) as avg_age,
+                 collect(DISTINCT r.reason) as reasons_list,
+                 collect(DISTINCT r.transport_type) as transport_list,
+                 collect(DISTINCT r.housing_type) as housing_list,
+                 collect(DISTINCT p.education) as education_list,
+                 collect(DISTINCT p.family_status) as family_list,
+                 collect({
+                     id: p.id,
+                     name: p.first_name + ' ' + p.last_name,
+                     age: p.age,
+                     gender: p.gender,
+                     education: p.education,
+                     profession: p.profession,
+                     family_status: p.family_status,
+                     reason: r.reason,
+                     transport_type: r.transport_type,
+                     housing_type: r.housing_type,
+                     migration_date: toString(r.date)
+                 }) as migrants
+            WITH from, to, total_count, avg_age, migrants,
+                 [x IN reasons_list | {reason: x, count: size([y IN reasons_list WHERE y = x])}] as reasons,
+                 [x IN transport_list | {type: x, count: size([y IN transport_list WHERE y = x])}] as transport_types,
+                 [x IN housing_list | {type: x, count: size([y IN housing_list WHERE y = x])}] as housing_types,
+                 [x IN education_list | {level: x, count: size([y IN education_list WHERE y = x])}] as education_levels,
+                 [x IN family_list | {status: x, count: size([y IN family_list WHERE y = x])}] as family_statuses
             RETURN {
-                from_city: from.name,
-                to_city: to.name,
-                total_migrations: count(r),
-                average_age: avg(p.age),
-                reasons: collect(distinct r.reason),
-                transport_types: collect(distinct r.transport_type),
-                housing_types: collect(distinct r.housing_type)
+                fromCity: from.name,
+                toCity: to.name,
+                totalCount: total_count,
+                averageAge: avg_age,
+                reasons: reasons,
+                transportTypes: transport_types,
+                housingTypes: housing_types,
+                educationLevels: education_levels,
+                familyStatuses: family_statuses,
+                migrants: migrants
             } as details
         """, {"from_city": from_city, "to_city": to_city})
         
@@ -341,9 +395,9 @@ async def get_migrants(
         
         # Отримуємо список мігрантів
         migrants = neo4j_service.execute_query("""
-            MATCH (from:City {name: $from_city})-[r:MIGRATED_TO]->(to:City {name: $to_city})
+            MATCH (from:City {name: $from_city})<-[:MIGRATES_FROM]-(p:Person)-[r:MIGRATES_TO]->(to:City {name: $to_city})
             WITH r, from, to
-            MATCH (p:Person)-[:MADE_MIGRATION]->(r)
+            MATCH (from:City {name: $from_city})<-[:MIGRATES_FROM]-(p:Person)-[r:MIGRATES_TO]->(to:City {name: $to_city})
             RETURN {
                 id: p.id,
                 first_name: p.first_name,
